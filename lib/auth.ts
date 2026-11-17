@@ -1,8 +1,10 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { emailOTP } from "better-auth/plugins";
 import { env } from "./env";
 import { db } from "./db";
 import * as schema from "./db/schema";
+import { sendVerificationCode } from "./email";
 
 const baseURL = new URL(env.BETTER_AUTH_URL);
 const isProductionAuthHost =
@@ -31,4 +33,14 @@ export const auth = betterAuth({
       ...(isProductionAuthHost ? { domain: ".outboundendurance.com" } : {}),
     },
   },
+  plugins: [
+    emailOTP({
+      otpLength: 6,
+      expiresIn: 600,
+      allowedAttempts: 5,
+      async sendVerificationOTP({ email, otp }) {
+        await sendVerificationCode(email, otp);
+      },
+    }),
+  ],
 });

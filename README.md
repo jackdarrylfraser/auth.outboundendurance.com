@@ -7,6 +7,13 @@ secret of at least 32 characters and the public base URL of this service in an
 ignored environment file or the deployment platform's secret settings. The
 local URL is `http://localhost:3000`.
 
+## Email OTP
+
+Better Auth sends six-digit sign-in codes through Resend. Configure
+`RESEND_API_KEY` and `RESEND_FROM_EMAIL` in `.env.local` or the deployment
+platform's secret settings. The sender address must be verified with Resend.
+Codes expire after 10 minutes and allow up to five verification attempts.
+
 ## Database setup
 
 The database uses Turso/libSQL with Drizzle ORM. For local development, copy
