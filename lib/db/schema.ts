@@ -138,7 +138,8 @@ export const stripeEvent = sqliteTable("stripe_event", {
   eventCreatedAt: integer("event_created_at", {
     mode: "timestamp_ms",
   }).notNull(),
-  processedAt: integer("processed_at", { mode: "timestamp_ms" }).notNull(),
+  payload: text("payload"),
+  processedAt: integer("processed_at", { mode: "timestamp_ms" }),
 });
 
 export const userRelations = relations(user, ({ many, one }) => ({

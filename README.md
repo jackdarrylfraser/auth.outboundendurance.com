@@ -75,6 +75,16 @@ customers with a Stripe customer mapping can open the portal from `/account` to
 update payment information or manage their subscription. Portal sessions return
 to `/account`.
 
+## Stripe webhooks
+
+Set `STRIPE_WEBHOOK_SECRET` to the signing secret for the Stripe webhook
+endpoint, separately from `STRIPE_SECRET_KEY`. Configure Stripe to send events
+to `POST /api/stripe/webhook`. The endpoint verifies the signature against the
+unmodified request body, stores each verified event once, and returns success
+for duplicate deliveries. Verified events remain pending (`processed_at` is
+null) until a processing handler succeeds; do not mark them processed before
+subscription synchronization is implemented.
+
 ## Entitlements
 
 Use `requirePaidAccess` from `lib/entitlement.ts` with a user ID from a validated
