@@ -54,6 +54,14 @@ Review and commit generated files in `drizzle/`. Apply migrations to the
 intended database explicitly; the commands use the same environment variables
 as the application.
 
+## Stripe customer sessions
+
+Set `STRIPE_SECRET_KEY` in `.env.local` or the deployment platform's secret
+settings. `POST /api/billing/customer-session` requires a valid Better Auth
+session. It creates or reuses the authenticated user's Stripe customer mapping
+and returns a short-lived pricing-table Customer Session client secret. The
+response is not cacheable; never log or persist the client secret.
+
 ## Entitlements
 
 Use `requirePaidAccess` from `lib/entitlement.ts` with a user ID from a validated
