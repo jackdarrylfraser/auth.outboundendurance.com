@@ -1,5 +1,12 @@
 # auth.outboundendurance.com
 
+## Authentication setup
+
+Better Auth uses `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL`. Set a unique random
+secret of at least 32 characters and the public base URL of this service in an
+ignored environment file or the deployment platform's secret settings. The
+local URL is `http://localhost:3000`.
+
 ## Database setup
 
 The database uses Turso/libSQL with Drizzle ORM. For local development, copy
@@ -26,3 +33,9 @@ bun run db:migrate
 Review and commit generated files in `drizzle/`. Apply migrations to the
 intended database explicitly; the commands use the same environment variables
 as the application.
+
+## Better Auth Secret
+
+Generate a better auth secret
+
+`openssl rand -base64 32`
