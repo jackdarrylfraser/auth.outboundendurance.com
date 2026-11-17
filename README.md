@@ -100,6 +100,16 @@ subscription, and database errors propagate to the caller. Subscription
 snapshots are revalidated with Stripe after 24 hours; failures to refresh stale
 eligible snapshots fail closed.
 
+Consuming apps can check the current request's entitlement with
+`GET /api/access`. Forward the user's Better Auth session cookie from the
+consuming app's server to this endpoint; do not accept a user ID from the
+browser or cache the response. A valid entitled session receives `200` with
+`{"entitled":true}`, a missing session receives `401`, and a signed-in user
+without paid access receives `403` with `{"entitled":false}`. If session or
+entitlement verification fails, the endpoint returns `503`; consuming apps
+must treat any non-`200` response or network error as no access. All responses
+are marked `Cache-Control: no-store`.
+
 ## Better Auth Secret
 
 Generate a better auth secret
