@@ -39,3 +39,19 @@ as the application.
 Generate a better auth secret
 
 `openssl rand -base64 32`
+
+## Shared sessions
+
+In production, Better Auth shares its session cookie across subdomains of
+`outboundendurance.com` and trusts those subdomains plus the apex origin.
+Configure `BETTER_AUTH_URL` as
+`https://auth.outboundendurance.com` to enable the parent-domain cookie. Local
+development keeps a host-only cookie and trusts only the configured
+`BETTER_AUTH_URL` origin. Because the wildcard trusts every subdomain, use it
+only when all subdomains are controlled and protected from takeover or
+untrusted hosting.
+
+Use `getServerSession` from `lib/session.ts` in server-rendered code to validate
+the current request's session. The mounted Better Auth route also handles
+`POST /api/auth/sign-out`; it expires the shared cookie so the user is signed
+out across the trusted subdomains.
