@@ -6,13 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:check": "bun run scripts/check-db.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
     "@react-email/components": "^1.0.12",
     "@stripe/react-stripe-js": "^7.1.0",
     "@stripe/stripe-js": "^10.3.0",
+    "@t3-oss/env-nextjs": "^0.13.11",
     "@upstash/ratelimit": "^2.2.1",
     "@upstash/redis": "^1.41.0",
     "better-auth": "^1.7.25",
@@ -21,7 +25,8 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "resend": "^6.38.1",
-    "stripe": "^23.1.0"
+    "stripe": "^23.1.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
