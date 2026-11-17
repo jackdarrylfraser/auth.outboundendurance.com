@@ -17,6 +17,8 @@ if (isProductionAuthHost) {
     "https://*.outboundendurance.com",
     "https://outboundendurance.com",
   );
+} else if (baseURL.protocol === "http:" && baseURL.hostname === "localhost") {
+  trustedOrigins.push("http://localhost:*");
 }
 
 export const auth = betterAuth({

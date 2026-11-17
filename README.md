@@ -16,7 +16,7 @@ Codes expire after 10 minutes and allow up to five verification attempts.
 The sign-in page creates an account when a new email successfully verifies its
 first code. Return URLs are limited to the auth service and, in production,
 `outboundendurance.com` and all HTTPS subdomains of that domain; local
-development allows only the configured `BETTER_AUTH_URL` origin.
+development allows any `localhost` port.
 
 Run the return URL tests with:
 

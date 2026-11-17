@@ -53,7 +53,7 @@ describe("getAllowedReturnUrl", () => {
     );
   });
 
-  it("rejects credentials and untrusted local development origins", () => {
+  it("rejects credentials and unrelated local development origins", () => {
     assert.equal(
       getAllowedReturnUrl(
         "https://user:password@auth.outboundendurance.com",
@@ -63,11 +63,25 @@ describe("getAllowedReturnUrl", () => {
     );
     assert.equal(
       getAllowedReturnUrl("http://localhost:3001", "http://localhost:3000"),
+      "http://localhost:3001/",
+    );
+    assert.equal(
+      getAllowedReturnUrl("http://attacker.example:3001", "http://localhost:3000"),
       null,
     );
     assert.equal(
       getAllowedReturnUrl("/dashboard", "http://localhost:3000"),
       "http://localhost:3000/dashboard",
+    );
+  });
+
+  it("allows localhost return URLs on any development port", () => {
+    assert.equal(
+      getAllowedReturnUrl(
+        "http://localhost:3001/dashboard",
+        "http://localhost:3000",
+      ),
+      "http://localhost:3001/dashboard",
     );
   });
 

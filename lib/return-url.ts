@@ -20,12 +20,19 @@ export function getAllowedReturnUrl(
       !destination.port &&
       (destination.hostname === "outboundendurance.com" ||
         destination.hostname.endsWith(".outboundendurance.com"));
+    const isAllowedLocalDevelopmentOrigin =
+      authBase.protocol === "http:" &&
+      authBase.hostname === "localhost" &&
+      destination.protocol === "http:" &&
+      destination.hostname === "localhost";
 
     if (
       !["http:", "https:"].includes(destination.protocol) ||
       destination.username ||
       destination.password ||
-      (!allowedOrigins.has(destination.origin) && !isAllowedProductionDomain)
+      (!allowedOrigins.has(destination.origin) &&
+        !isAllowedProductionDomain &&
+        !isAllowedLocalDevelopmentOrigin)
     ) {
       return null;
     }
