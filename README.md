@@ -29,6 +29,9 @@ bun run test
 The database uses Turso/libSQL with Drizzle ORM. For local development, copy
 `.env.example` to `.env.local`; the default URL uses a local `local.db` file and
 does not need an auth token.
+Billing data is stored separately from authentication: `stripe_customer` maps
+users to Stripe customers, `stripe_subscription` stores subscription state,
+and `stripe_event` records successfully processed webhook event IDs.
 
 For a Turso database, set `TURSO_DATABASE_URL` to its libSQL URL and
 `TURSO_AUTH_TOKEN` to a database token. Keep the token in an ignored environment

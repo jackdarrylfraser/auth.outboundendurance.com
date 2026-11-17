@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -77,9 +83,68 @@ export const verification = sqliteTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-export const userRelations = relations(user, ({ many }) => ({
+export const stripeCustomer = sqliteTable(
+  "stripe_customer",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    stripeCustomerId: text("stripe_customer_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("stripe_customer_customerId_unique").on(
+      table.stripeCustomerId,
+    ),
+  ],
+);
+
+export const stripeSubscription = sqliteTable(
+  "stripe_subscription",
+  {
+    id: text("id").primaryKey(),
+    stripeCustomerId: text("stripe_customer_id")
+      .notNull()
+      .references(() => stripeCustomer.stripeCustomerId, {
+        onDelete: "cascade",
+      }),
+    status: text("status").notNull(),
+    currentPeriodEnd: integer("current_period_end", {
+      mode: "timestamp_ms",
+    }).notNull(),
+    cancelAtPeriodEnd: integer("cancel_at_period_end", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    cancelAt: integer("cancel_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("stripe_subscription_customer_status_idx").on(
+      table.stripeCustomerId,
+      table.status,
+    ),
+  ],
+);
+
+export const stripeEvent = sqliteTable("stripe_event", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  eventCreatedAt: integer("event_created_at", {
+    mode: "timestamp_ms",
+  }).notNull(),
+  processedAt: integer("processed_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
+  stripeCustomer: one(stripeCustomer),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -95,3 +160,24 @@ export const accountRelations = relations(account, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export const stripeCustomerRelations = relations(
+  stripeCustomer,
+  ({ one, many }) => ({
+    user: one(user, {
+      fields: [stripeCustomer.userId],
+      references: [user.id],
+    }),
+    subscriptions: many(stripeSubscription),
+  }),
+);
+
+export const stripeSubscriptionRelations = relations(
+  stripeSubscription,
+  ({ one }) => ({
+    customer: one(stripeCustomer, {
+      fields: [stripeSubscription.stripeCustomerId],
+      references: [stripeCustomer.stripeCustomerId],
+    }),
+  }),
+);
