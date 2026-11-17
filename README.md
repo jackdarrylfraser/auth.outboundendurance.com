@@ -62,6 +62,12 @@ session. It creates or reuses the authenticated user's Stripe customer mapping
 and returns a short-lived pricing-table Customer Session client secret. The
 response is not cacheable; never log or persist the client secret.
 
+Create a pricing table in the Stripe Dashboard, then set
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` and
+`NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID` to values from the same Stripe account and
+mode. `/account` requires sign-in; users without an `active` or `trialing`
+subscription can choose a plan and complete Stripe-hosted Checkout there.
+
 ## Entitlements
 
 Use `requirePaidAccess` from `lib/entitlement.ts` with a user ID from a validated
