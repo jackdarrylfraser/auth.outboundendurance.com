@@ -54,6 +54,14 @@ Review and commit generated files in `drizzle/`. Apply migrations to the
 intended database explicitly; the commands use the same environment variables
 as the application.
 
+## Entitlements
+
+Use `requirePaidAccess` from `lib/entitlement.ts` with a user ID from a validated
+session. It permits access when at least one linked subscription is `active` or
+`trialing`; a scheduled cancellation does not revoke access until the status
+changes. It throws `PaidAccessRequiredError` when the user has no eligible
+subscription, and database errors propagate to the caller.
+
 ## Better Auth Secret
 
 Generate a better auth secret
