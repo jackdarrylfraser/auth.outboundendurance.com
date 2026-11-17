@@ -7,6 +7,16 @@ import { stripeCustomer } from "./db/schema";
 
 export const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
+export async function getStripeCustomerId(userId: string): Promise<string | null> {
+  const [mapping] = await db
+    .select({ customerId: stripeCustomer.stripeCustomerId })
+    .from(stripeCustomer)
+    .where(eq(stripeCustomer.userId, userId))
+    .limit(1);
+
+  return mapping?.customerId ?? null;
+}
+
 export async function getOrCreateStripeCustomer(user: {
   id: string;
   email: string;

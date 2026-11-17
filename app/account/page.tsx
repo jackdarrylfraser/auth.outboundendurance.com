@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { PaidAccessRequiredError } from "@/lib/entitlement-policy";
 import { requirePaidAccess } from "@/lib/entitlement";
 import { getServerSession } from "@/lib/session";
+import { getStripeCustomerId } from "@/lib/stripe";
+import { BillingPortalButton } from "./billing-portal-button";
 import { PricingTable } from "./pricing-table";
 
 export const metadata: Metadata = {
@@ -34,6 +36,8 @@ async function AccountContent() {
     redirect("/?returnTo=%2Faccount");
   }
 
+  const stripeCustomerId = await getStripeCustomerId(session.user.id);
+
   try {
     await requirePaidAccess(session.user.id);
   } catch (error) {
@@ -54,6 +58,11 @@ async function AccountContent() {
             Select a plan below to continue. Checkout is securely hosted by
             Stripe.
           </p>
+          {stripeCustomerId ? (
+            <div className="mt-5">
+              <BillingPortalButton />
+            </div>
+          ) : null}
           <div className="mt-8">
             <PricingTable />
           </div>
@@ -78,9 +87,14 @@ async function AccountContent() {
           Your plan is active
         </h1>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
-          You have access to your paid membership. Subscription management will
-          be available here soon.
+          You have access to your paid membership. Manage your subscription and
+          payment information through Stripe.
         </p>
+        {stripeCustomerId ? (
+          <div className="mt-6">
+            <BillingPortalButton />
+          </div>
+        ) : null}
       </section>
     </main>
   );

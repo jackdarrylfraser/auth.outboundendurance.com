@@ -68,6 +68,13 @@ Create a pricing table in the Stripe Dashboard, then set
 mode. `/account` requires sign-in; users without an `active` or `trialing`
 subscription can choose a plan and complete Stripe-hosted Checkout there.
 
+Configure the Stripe Customer Portal's default configuration to enable payment
+method updates, subscription updates for the plans offered by this service, and
+subscription cancellation with the mode set to `at_period_end`. Authenticated
+customers with a Stripe customer mapping can open the portal from `/account` to
+update payment information or manage their subscription. Portal sessions return
+to `/account`.
+
 ## Entitlements
 
 Use `requirePaidAccess` from `lib/entitlement.ts` with a user ID from a validated
