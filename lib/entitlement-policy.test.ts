@@ -3,11 +3,28 @@ import { describe, it } from "node:test";
 import {
   createPaidAccessGuard,
   hasPaidEntitlement,
+  isSubscriptionStale,
   PaidAccessRequiredError,
   type SubscriptionEntitlement,
 } from "./entitlement-policy";
 
 describe("paid entitlement policy", () => {
+  it("uses a 24-hour freshness window for subscription snapshots", () => {
+    const now = new Date("2026-01-02T00:00:00.000Z");
+
+    assert.equal(
+      isSubscriptionStale(new Date(now.getTime() - 24 * 60 * 60 * 1000), now),
+      true,
+    );
+    assert.equal(
+      isSubscriptionStale(
+        new Date(now.getTime() - 24 * 60 * 60 * 1000 + 1),
+        now,
+      ),
+      false,
+    );
+  });
+
   it("allows active and trialing subscriptions, including scheduled cancellations", () => {
     const subscriptions: SubscriptionEntitlement[] = [
       { status: "active", cancelAtPeriodEnd: true },

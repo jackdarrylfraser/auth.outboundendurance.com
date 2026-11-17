@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   sqliteTable,
   text,
@@ -115,6 +115,14 @@ export const stripeSubscription = sqliteTable(
     currentPeriodEnd: integer("current_period_end", {
       mode: "timestamp_ms",
     }).notNull(),
+    lastEventCreatedAt: integer("last_event_created_at", {
+      mode: "timestamp_ms",
+    })
+      .default(sql`0`)
+      .notNull(),
+    lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" })
+      .default(sql`0`)
+      .notNull(),
     cancelAtPeriodEnd: integer("cancel_at_period_end", { mode: "boolean" })
       .default(false)
       .notNull(),

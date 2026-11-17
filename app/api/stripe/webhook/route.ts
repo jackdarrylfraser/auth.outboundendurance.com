@@ -1,8 +1,10 @@
 import Stripe from "stripe";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { stripeEvent } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { stripe } from "@/lib/stripe";
+import { processStripeWebhookEvent } from "@/lib/stripe-webhook";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 
@@ -49,6 +51,18 @@ export async function POST(request: Request) {
       processedAt: null,
     })
     .onConflictDoNothing({ target: stripeEvent.id });
+
+  const [storedEvent] = await db
+    .select({ processedAt: stripeEvent.processedAt })
+    .from(stripeEvent)
+    .where(eq(stripeEvent.id, event.id))
+    .limit(1);
+
+  if (storedEvent?.processedAt) {
+    return Response.json({ received: true }, { headers: noStoreHeaders });
+  }
+
+  await processStripeWebhookEvent(event);
 
   return Response.json({ received: true }, { headers: noStoreHeaders });
 }

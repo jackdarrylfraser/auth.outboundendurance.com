@@ -80,10 +80,15 @@ to `/account`.
 Set `STRIPE_WEBHOOK_SECRET` to the signing secret for the Stripe webhook
 endpoint, separately from `STRIPE_SECRET_KEY`. Configure Stripe to send events
 to `POST /api/stripe/webhook`. The endpoint verifies the signature against the
-unmodified request body, stores each verified event once, and returns success
-for duplicate deliveries. Verified events remain pending (`processed_at` is
-null) until a processing handler succeeds; do not mark them processed before
-subscription synchronization is implemented.
+unmodified request body and stores each verified event once. Checkout and
+subscription lifecycle events retrieve the current subscription from Stripe,
+then synchronize it only when its Stripe customer ID maps to a known user.
+Events are marked processed only after synchronization succeeds; duplicate
+deliveries retry pending events and acknowledge already-processed events.
+An unmapped Stripe customer is linked only when its server-side `userId`
+metadata identifies an existing user and the unique mapping can be saved;
+otherwise the event remains pending for retry or manual reconciliation. Never
+associate a purchase by email or browser-provided reference.
 
 ## Entitlements
 
@@ -91,7 +96,9 @@ Use `requirePaidAccess` from `lib/entitlement.ts` with a user ID from a validate
 session. It permits access when at least one linked subscription is `active` or
 `trialing`; a scheduled cancellation does not revoke access until the status
 changes. It throws `PaidAccessRequiredError` when the user has no eligible
-subscription, and database errors propagate to the caller.
+subscription, and database errors propagate to the caller. Subscription
+snapshots are revalidated with Stripe after 24 hours; failures to refresh stale
+eligible snapshots fail closed.
 
 ## Better Auth Secret
 

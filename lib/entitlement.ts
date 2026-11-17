@@ -1,13 +1,44 @@
 import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { stripeCustomer, stripeSubscription } from "./db/schema";
-import { createPaidAccessGuard } from "./entitlement-policy";
+import {
+  createPaidAccessGuard,
+  isSubscriptionStale,
+} from "./entitlement-policy";
+import { stripe } from "./stripe";
+import { syncStripeSubscription } from "./stripe-subscriptions";
 
 export const requirePaidAccess = createPaidAccessGuard(async (userId) => {
-  const subscriptions = await db
+  const subscriptions = await loadSubscriptions(userId);
+  const now = new Date();
+  const staleEligibleSubscriptions = subscriptions.filter(
+    ({ status, lastSyncedAt }) =>
+      (status === "active" || status === "trialing") &&
+      isSubscriptionStale(lastSyncedAt, now),
+  );
+
+  if (staleEligibleSubscriptions.length > 0) {
+    for (const subscription of staleEligibleSubscriptions) {
+      const current = await stripe.subscriptions.retrieve(subscription.id);
+      await syncStripeSubscription(current, {
+        expectedLastEventCreatedAt: subscription.lastEventCreatedAt,
+      });
+    }
+
+    return loadSubscriptions(userId);
+  }
+
+  return subscriptions;
+});
+
+async function loadSubscriptions(userId: string) {
+  return db
     .select({
+      id: stripeSubscription.id,
       status: stripeSubscription.status,
       cancelAtPeriodEnd: stripeSubscription.cancelAtPeriodEnd,
+      lastSyncedAt: stripeSubscription.lastSyncedAt,
+      lastEventCreatedAt: stripeSubscription.lastEventCreatedAt,
     })
     .from(stripeSubscription)
     .innerJoin(
@@ -15,6 +46,4 @@ export const requirePaidAccess = createPaidAccessGuard(async (userId) => {
       eq(stripeSubscription.stripeCustomerId, stripeCustomer.stripeCustomerId),
     )
     .where(eq(stripeCustomer.userId, userId));
-
-  return subscriptions;
-});
+}
