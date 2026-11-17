@@ -11,6 +11,8 @@
 
 A user can authenticate without an eligible subscription, but can access only billing, not paid application features.
 
+The Stripe Pricing Table success URL must return to `/billing/return`. The return page uses the signed-in user's synchronized subscription state; redirect parameters do not establish payment or grant access.
+
 ## Working steps
 
 Each estimate covers the **total changed lines**, including tests and configuration. Split a step if its actual diff would exceed 200 lines.
