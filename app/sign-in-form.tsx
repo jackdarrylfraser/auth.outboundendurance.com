@@ -63,7 +63,9 @@ export function SignInForm({ returnUrl }: SignInFormProps) {
       }
 
       if (returnUrl) {
-        window.location.assign(returnUrl);
+        const accountUrl = new URL("/account", window.location.origin);
+        accountUrl.searchParams.set("returnTo", returnUrl);
+        window.location.assign(accountUrl.href);
         return;
       }
 

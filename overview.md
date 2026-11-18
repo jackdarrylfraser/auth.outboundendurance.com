@@ -35,7 +35,7 @@ Each estimate covers the **total changed lines**, including tests and configurat
 | 14 | Handle billing returns | 80-150 | `/billing/return` shows processing or confirmed state without granting access based on the redirect alone. |
 | 15 | Expose cross-app access | 100-180 | `/api/access` validates the session and entitlement, returns `no-store` responses, and fails closed on errors. |
 | 16 | Integrate each consuming app | 100-200 **per app** | The app checks entitlement server-to-server and enforces it for protected pages, actions, and APIs. |
-| 17 | Verify and document | 100-200 | Setup is documented and end-to-end tests cover OTP, shared sessions, trials, past-due recovery, purchasing, cancellation, and webhook failures. |
+| 17 | Verify and document | 100-200 | Setup is documented and unit tests cover OTP, shared sessions, trials, past-due recovery, purchasing, cancellation, and webhook failures. |
 
 ## Implementation safeguards
 

@@ -1,0 +1,8 @@
+test the code on localhost
+- if it looks good then continue with step 17 and write tests
+
+modify the style to match with a good style
+
+consider using zola or the markdown engine I built to render the text. 
+- I kinda like the one I built because it's more flexible and I can build a translation step into the processing.
+- whereas for more simple applications the structure and confinement of zola actaully feels like a helpful limit to like master it.

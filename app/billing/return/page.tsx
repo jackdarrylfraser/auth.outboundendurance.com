@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { env } from "@/lib/env";
 import { getServerSession } from "@/lib/session";
 import { BillingReturnStatus } from "./billing-return-status";
 
@@ -8,11 +10,47 @@ export const metadata: Metadata = {
   description: "Check the status of your subscription checkout.",
 };
 
-export default async function BillingReturnPage() {
+type BillingReturnPageProps = {
+  searchParams: Promise<{ session_id?: string | string[] }>;
+};
+
+export default async function BillingReturnPage({
+  searchParams,
+}: BillingReturnPageProps) {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex flex-1 justify-center px-6 py-16">
+          <p aria-live="polite" className="text-sm text-zinc-600" role="status">
+            Loading your subscription status...
+          </p>
+        </main>
+      }
+    >
+      <BillingReturnContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function BillingReturnContent({
+  searchParams,
+}: BillingReturnPageProps) {
+  const { session_id: sessionIdParam } = await searchParams;
+  const sessionId =
+    typeof sessionIdParam === "string" ? sessionIdParam : null;
+
+  if (!sessionId?.startsWith("cs_")) {
+    redirect("/account");
+  }
+
   const session = await getServerSession();
 
   if (!session) {
-    redirect("/?returnTo=%2Fbilling%2Freturn");
+    const returnUrl = new URL("/billing/return", env.BETTER_AUTH_URL);
+    returnUrl.searchParams.set("session_id", sessionId);
+    const loginUrl = new URL("/", env.BETTER_AUTH_URL);
+    loginUrl.searchParams.set("returnTo", returnUrl.href);
+    redirect(`${loginUrl.pathname}${loginUrl.search}`);
   }
 
   return (
@@ -30,7 +68,7 @@ export default async function BillingReturnPage() {
         >
           Checking your subscription
         </h1>
-        <BillingReturnStatus />
+        <BillingReturnStatus sessionId={sessionId} />
       </section>
     </main>
   );

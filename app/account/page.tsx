@@ -1,19 +1,25 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { env } from "@/lib/env";
 import { PaidAccessRequiredError } from "@/lib/entitlement-policy";
 import { requirePaidAccess } from "@/lib/entitlement";
+import { getAllowedReturnUrl } from "@/lib/return-url";
 import { getServerSession } from "@/lib/session";
 import { getStripeCustomerId } from "@/lib/stripe";
 import { BillingPortalButton } from "./billing-portal-button";
-import { PricingTable } from "./pricing-table";
+import { PricingOptions } from "./pricing-options";
 
 export const metadata: Metadata = {
   title: "Account | Outbound Endurance",
   description: "Manage your Outbound Endurance account and subscription.",
 };
 
-export default function AccountPage() {
+type AccountPageProps = {
+  searchParams: Promise<{ returnTo?: string | string[] }>;
+};
+
+export default function AccountPage({ searchParams }: AccountPageProps) {
   return (
     <Suspense
       fallback={
@@ -24,25 +30,51 @@ export default function AccountPage() {
         </main>
       }
     >
-      <AccountContent />
+      <AccountContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function AccountContent() {
+async function AccountContent({ searchParams }: AccountPageProps) {
+  const requestedReturnTo = (await searchParams).returnTo;
+  const validatedReturnTo = getAllowedReturnUrl(
+    typeof requestedReturnTo === "string" ? requestedReturnTo : undefined,
+    env.BETTER_AUTH_URL,
+  );
+  const returnTo =
+    validatedReturnTo &&
+    new URL(validatedReturnTo).pathname !== "/account"
+      ? validatedReturnTo
+      : null;
   const session = await getServerSession();
 
   if (!session) {
-    redirect("/?returnTo=%2Faccount");
+    const loginUrl = new URL("/", env.BETTER_AUTH_URL);
+    loginUrl.searchParams.set(
+      "returnTo",
+      returnTo ?? new URL("/account", env.BETTER_AUTH_URL).href,
+    );
+    redirect(`${loginUrl.pathname}${loginUrl.search}`);
   }
 
   const stripeCustomerId = await getStripeCustomerId(session.user.id);
 
   try {
     await requirePaidAccess(session.user.id);
+    if (returnTo) {
+      redirect(returnTo);
+    }
   } catch (error) {
     if (!(error instanceof PaidAccessRequiredError)) {
       throw error;
+    }
+
+    if (
+      returnTo &&
+      new URL(returnTo).pathname === "/billing/return" &&
+      new URL(returnTo).origin === new URL(env.BETTER_AUTH_URL).origin
+    ) {
+      redirect(returnTo);
     }
 
     return (
@@ -64,7 +96,7 @@ async function AccountContent() {
             </div>
           ) : null}
           <div className="mt-8">
-            <PricingTable />
+            <PricingOptions returnTo={returnTo} />
           </div>
         </section>
       </main>

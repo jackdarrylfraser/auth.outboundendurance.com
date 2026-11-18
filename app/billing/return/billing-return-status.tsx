@@ -6,8 +6,9 @@ type BillingStatus = "checking" | "processing" | "confirmed" | "error";
 const maxChecks = 10;
 const checkIntervalMs = 2_000;
 
-export function BillingReturnStatus() {
+export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
   const [status, setStatus] = useState<BillingStatus>("checking");
+  const [returnTo, setReturnTo] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -20,6 +21,8 @@ export function BillingReturnStatus() {
         const response = await fetch("/api/billing/return-status", {
           method: "POST",
           cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
         });
 
         if (!response.ok) {
@@ -31,7 +34,10 @@ export function BillingReturnStatus() {
           !body ||
           typeof body !== "object" ||
           !("status" in body) ||
-          (body.status !== "processing" && body.status !== "confirmed")
+          (body.status !== "processing" && body.status !== "confirmed") ||
+          ("returnTo" in body &&
+            body.returnTo !== null &&
+            typeof body.returnTo !== "string")
         ) {
           throw new Error("The billing status response was invalid.");
         }
@@ -42,7 +48,18 @@ export function BillingReturnStatus() {
         }
 
         if (result === "confirmed") {
+          const destination =
+            "returnTo" in body && typeof body.returnTo === "string"
+              ? body.returnTo
+              : null;
+          setReturnTo(destination);
           setStatus("confirmed");
+          if (destination) {
+            timer = setTimeout(
+              () => window.location.assign(destination),
+              1_200,
+            );
+          }
           return;
         }
 
@@ -69,13 +86,19 @@ export function BillingReturnStatus() {
         clearTimeout(timer);
       }
     };
-  }, [attempt]);
+  }, [attempt, sessionId]);
 
   if (status === "confirmed") {
     return (
       <div className="mt-3">
-        <p aria-live="polite" className="text-sm leading-6 text-zinc-600" role="status">
-          Your subscription is active. You can continue to your account.
+        <p
+          aria-live="polite"
+          className="text-sm leading-6 text-zinc-600"
+          role="status"
+        >
+          {returnTo
+            ? "Your subscription is active. Redirecting to the page you originally requested."
+            : "Your subscription is active. You can continue to your account."}
         </p>
         <a
           className="mt-6 inline-flex rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
@@ -111,8 +134,8 @@ export function BillingReturnStatus() {
     <div className="mt-3">
       <p aria-live="polite" className="text-sm leading-6 text-zinc-600" role="status">
         {status === "checking"
-          ? "Your checkout is still processing. We’re checking for a subscription update."
-          : "Your checkout is still processing. It can take a little while for the update to arrive."}
+          ? "Your purchase is being confirmed. We’re checking for the subscription update."
+          : "Your purchase is still processing. It can take a little while for the update to arrive."}
       </p>
       {status === "processing" ? (
         <button

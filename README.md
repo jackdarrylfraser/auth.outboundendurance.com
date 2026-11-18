@@ -54,19 +54,30 @@ Review and commit generated files in `drizzle/`. Apply migrations to the
 intended database explicitly; the commands use the same environment variables
 as the application.
 
-## Stripe customer sessions
+## Stripe Checkout
 
 Set `STRIPE_SECRET_KEY` in `.env.local` or the deployment platform's secret
-settings. `POST /api/billing/customer-session` requires a valid Better Auth
-session. It creates or reuses the authenticated user's Stripe customer mapping
-and returns a short-lived pricing-table Customer Session client secret. The
-response is not cacheable; never log or persist the client secret.
+settings. Set `STRIPE_ALLOWED_PRICE_IDS` to a comma-separated allowlist of
+recurring Stripe Price IDs that users can purchase. These IDs are not secrets;
+the server rejects any price that is not on this list.
 
-Create a pricing table in the Stripe Dashboard, then set
-`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` and
-`NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID` to values from the same Stripe account and
-mode. `/account` requires sign-in; users without an `active` or `trialing`
-subscription can choose a plan and complete Stripe-hosted Checkout there.
+`/account` requires sign-in. Users without an `active` or `trialing`
+subscription can select an allowlisted plan. `POST /api/billing/checkout-session`
+creates a Stripe-hosted Checkout Session for that price and stores the validated
+`returnTo` URL and user ID in the Checkout Session metadata. Configure no
+additional database state for this redirect flow. Stripe returns the browser to
+`/billing/return` with the Checkout Session ID; the return page retrieves the
+metadata from Stripe and polls for the entitlement update from the webhook. It
+redirects to `returnTo` only after entitlement is confirmed.
+
+Consuming apps should make the access check server-to-server, then redirect the
+user's browser to the auth site with the originally requested page in its
+`returnTo` query parameter if the check returns `401` or `403`. A `401` requires
+sign-in; a `403` requires sign-in and an eligible subscription. After the user
+completes any required steps, the auth site returns the browser to that page.
+The consuming app should repeat its server-to-server access check on arrival.
+Return URLs are limited to the auth service and, in production,
+`outboundendurance.com` and its HTTPS subdomains.
 
 Configure the Stripe Customer Portal's default configuration to enable payment
 method updates, subscription updates for the plans offered by this service, and
