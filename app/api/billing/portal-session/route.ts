@@ -1,6 +1,7 @@
 import { getServerSession } from "@/lib/session";
 import { env } from "@/lib/env";
 import { getStripeCustomerId, stripe } from "@/lib/stripe";
+import { findStripeBillingPortalConfiguration } from "@/lib/stripe-billing-portal";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 
@@ -23,8 +24,16 @@ export async function POST() {
     );
   }
 
+  const configuration = await findStripeBillingPortalConfiguration(stripe);
+  if (!configuration) {
+    throw new Error(
+      "No active Stripe Billing Portal configuration has the required features. Run `bun run stripe:portal-config` with this environment's Stripe secret key.",
+    );
+  }
+
   const portalSession = await stripe.billingPortal.sessions.create({
     customer: customerId,
+    configuration: configuration.id,
     return_url: new URL("/account", env.BETTER_AUTH_URL).toString(),
   });
 

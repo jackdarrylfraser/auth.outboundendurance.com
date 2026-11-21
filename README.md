@@ -81,13 +81,38 @@ The consuming app should repeat its server-to-server access check on arrival.
 Return URLs are limited to the auth service and, in production,
 `outboundendurance.com` and its HTTPS subdomains.
 
-Configure the Stripe Customer Portal to allow payment method updates and
-subscription cancellation at the end of the current billing period. Disable
-subscription or price switching. Authenticated customers with a Stripe customer
-mapping can open the portal from `/account` to manage or cancel their
-subscription. A scheduled cancellation remains `active` until the paid period
-ends, so entitlement continues during that period; access ends when Stripe
-reports the subscription as canceled. Portal sessions return to `/account`.
+The app manages its Customer Portal configuration through the Stripe API.
+`bun run build` only builds the app. Configure the deployment's build command
+as `bun run build` and its pre-deploy or release command as:
+
+```sh
+bun run deploy:prepare
+```
+
+This runs `bun run db:migrate` followed by `bun run stripe:portal-config`.
+Provide the deployment's database credentials and its Stripe secret key to this
+step, and run it once per deployment before the new app version receives
+traffic. Use a test-mode key for test environments and a live-mode key for
+production; Stripe keeps configurations separate by mode.
+
+If the deployment platform expects one command for the whole sequence, use
+`bun run deploy`. The shell script prints each step, builds first, then applies
+migrations and syncs Stripe. `bun run deploy:prepare` runs only the latter two
+steps when the platform already runs the build separately.
+
+The Stripe sync finds a configuration with the required features and updates
+it, or creates one if none exists. It enables payment method updates, invoice
+history, and cancellation at the period end; it disables subscription updates
+and pauses. No configuration ID needs to be added to the app environment.
+`bun run stripe:portal-config` can also be run on its own.
+
+Authenticated customers with a Stripe customer mapping can open the portal from
+`/account` to update payment information, view invoices, or cancel their
+subscription. Portal sessions find a configuration by its required feature
+settings and return to `/account`; ambiguous matches fail explicitly. A
+scheduled cancellation remains `active` until the paid period ends, so
+entitlement continues during that period; access ends when Stripe reports the
+subscription as canceled.
 
 ## Stripe webhooks
 
