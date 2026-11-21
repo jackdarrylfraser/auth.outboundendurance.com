@@ -8,6 +8,7 @@ import {
   STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER,
   STRIPE_BILLING_PORTAL_CONFIGURATION_NAME,
 } from "@/lib/billing/stripe/billing-portal-policy";
+import { getStripeLivemode } from "@/lib/billing/stripe/catalog-definition";
 
 const scriptEnv = z
   .object({
@@ -17,11 +18,7 @@ const scriptEnv = z
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
   });
 
-const isLiveMode = scriptEnv.STRIPE_SECRET_KEY.startsWith("sk_live_");
-if (!isLiveMode && !scriptEnv.STRIPE_SECRET_KEY.startsWith("sk_test_")) {
-  throw new Error("STRIPE_SECRET_KEY must be a standard Stripe test or live secret key.");
-}
-
+const isLiveMode = getStripeLivemode(scriptEnv.STRIPE_SECRET_KEY);
 const stripe = new Stripe(scriptEnv.STRIPE_SECRET_KEY);
 const metadata = {
   managed_by: STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER,

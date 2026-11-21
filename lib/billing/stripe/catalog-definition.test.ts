@@ -13,9 +13,11 @@ describe("Stripe subscription catalog definition", () => {
     );
   });
 
-  it("selects the Stripe mode from a standard secret key", () => {
+  it("selects the Stripe mode from supported secret key prefixes", () => {
     assert.equal(getStripeLivemode("sk_test_example"), false);
     assert.equal(getStripeLivemode("sk_live_example"), true);
-    assert.throws(() => getStripeLivemode("invalid"), /standard Stripe test or live/);
+    assert.equal(getStripeLivemode("rk_test_example"), false);
+    assert.equal(getStripeLivemode("rk_live_example"), true);
+    assert.throws(() => getStripeLivemode("invalid"), /Stripe test or live/);
   });
 });

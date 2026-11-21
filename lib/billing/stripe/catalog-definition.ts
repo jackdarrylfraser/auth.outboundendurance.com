@@ -58,6 +58,6 @@ export function getStripeLivemode(secretKey: string): boolean {
   }
 
   throw new Error(
-    "STRIPE_SECRET_KEY must be a standard Stripe test or live secret key.",
+    "STRIPE_SECRET_KEY must be a Stripe test or live secret key.",
   );
 }
