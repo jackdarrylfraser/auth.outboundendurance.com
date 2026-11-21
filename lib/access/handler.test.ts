@@ -91,4 +91,27 @@ describe("cross-app access endpoint", () => {
     assert.equal(response.headers.get("Cache-Control"), "no-store");
     assert.deepEqual(errors, [sessionError]);
   });
+
+  it("rethrows Next.js prerender interruptions", async () => {
+    const prerenderInterrupt = Object.assign(
+      new Error("Prerender interrupted"),
+      { digest: "HANGING_PROMISE_REJECTION" },
+    );
+    const handler = createAccessHandler({
+      getSession: async () => {
+        throw prerenderInterrupt;
+      },
+      requirePaidAccess: async () => {
+        assert.fail("Must not check access when session validation fails");
+      },
+      logError: () => {
+        assert.fail("Must not log framework prerender interruptions");
+      },
+    });
+
+    await assert.rejects(() => handler(), (error) => {
+      assert.equal(error, prerenderInterrupt);
+      return true;
+    });
+  });
 });

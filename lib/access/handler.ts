@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
@@ -33,6 +34,8 @@ export function createAccessHandler({
       await requirePaidAccess(session.user.id);
       return Response.json({ entitled: true }, { headers: noStoreHeaders });
     } catch (error) {
+      unstable_rethrow(error);
+
       if (error instanceof PaidAccessRequiredError) {
         return Response.json(
           { entitled: false },
