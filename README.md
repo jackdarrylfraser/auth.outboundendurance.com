@@ -54,6 +54,36 @@ Review and commit generated files in `drizzle/`. Apply migrations to the
 intended database explicitly; the commands use the same environment variables
 as the application.
 
+## Vercel environment variables
+
+Create `.env.production` and `.env.preview` in the repository root.
+Use separate auth secrets, Stripe keys, and Turso databases; the build command
+runs migrations and Stripe setup for the selected Vercel environment. These
+files are ignored by Git. Do not commit them or copy Production credentials into
+Preview.
+
+Authenticate the Vercel CLI and link this repository to the intended Vercel
+project, then validate and upload each environment:
+
+```sh
+bunx vercel login
+bunx vercel link
+bun run sync:env:preview -- --check
+bun run sync:env:preview
+bun run sync:env:prod -- --check
+bun run sync:env:prod
+```
+
+The uploader parses the selected file and `.env.example` with `dotenv`; it
+fails before making changes unless the files have exactly the same variable
+names and all values are non-empty. It then removes the selected Vercel
+environment's variables and recreates the file's variables as Secrets,
+sending values through standard input without printing them. Keep Production
+and Preview credentials and databases separate, and use Stripe live keys for
+Production and test keys for Preview. Variables shared with another Vercel
+environment cause the sync to stop rather than delete that other environment's
+configuration.
+
 ## Stripe Checkout
 
 Set `STRIPE_SECRET_KEY` in `.env.local` or the deployment platform's secret
@@ -128,17 +158,26 @@ subscription as canceled.
 ## Stripe webhooks
 
 Set `STRIPE_WEBHOOK_SECRET` to the signing secret for the Stripe webhook
-endpoint, separately from `STRIPE_SECRET_KEY`. Configure Stripe to send events
-to `POST /api/stripe/webhook`. The endpoint verifies the signature against the
-unmodified request body and stores each verified event once. Checkout and
-subscription lifecycle events retrieve the current subscription from Stripe,
-then synchronize it only when its Stripe customer ID maps to a known user.
-Events are marked processed only after synchronization succeeds; duplicate
-deliveries retry pending events and acknowledge already-processed events.
-An unmapped Stripe customer is linked only when its server-side `userId`
-metadata identifies an existing user and the unique mapping can be saved;
-otherwise the event remains pending for retry or manual reconciliation. Never
-associate a purchase by email or browser-provided reference.
+endpoint, separately from `STRIPE_SECRET_KEY`. Configure a Stripe webhook
+endpoint with the URL `https://auth.outboundendurance.com/api/stripe/webhook`
+and subscribe it to these events:
+
+- `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+
+The endpoint verifies each signature against the unmodified request body and
+stores each verified event once. Checkout and subscription lifecycle events
+retrieve the current subscription from Stripe, then synchronize it only when
+its Stripe customer ID maps to a known user. Events are marked processed only
+after synchronization succeeds; duplicate deliveries retry pending events and
+acknowledge already-processed events. An unmapped Stripe customer is linked
+only when its server-side `userId` metadata identifies an existing user and the
+unique mapping can be saved; otherwise the event remains pending for retry or
+manual reconciliation. Never associate a purchase by email or
+browser-provided reference.
 
 ## Entitlements
 
