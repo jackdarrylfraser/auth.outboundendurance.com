@@ -5,7 +5,6 @@ import {
   hasPaidEntitlement,
   isSubscriptionStale,
   PaidAccessRequiredError,
-  type SubscriptionEntitlement,
 } from "./entitlement-policy";
 
 describe("paid entitlement policy", () => {
@@ -25,13 +24,15 @@ describe("paid entitlement policy", () => {
     );
   });
 
-  it("allows active and trialing subscriptions, including scheduled cancellations", () => {
-    const subscriptions: SubscriptionEntitlement[] = [
-      { status: "active", cancelAtPeriodEnd: true },
-      { status: "trialing", cancelAtPeriodEnd: false },
-    ];
-
-    assert.equal(hasPaidEntitlement(subscriptions), true);
+  it("keeps access through the paid period for a scheduled cancellation", () => {
+    assert.equal(
+      hasPaidEntitlement([{ status: "active", cancelAtPeriodEnd: true }]),
+      true,
+    );
+    assert.equal(
+      hasPaidEntitlement([{ status: "trialing", cancelAtPeriodEnd: false }]),
+      true,
+    );
   });
 
   it("denies missing subscriptions and every status other than active or trialing", () => {

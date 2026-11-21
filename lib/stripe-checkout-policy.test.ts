@@ -4,20 +4,18 @@ import {
   getCheckoutCancelUrl,
   getCheckoutSuccessUrl,
   isCheckoutSessionId,
-  parseAllowedStripePriceIds,
+  parseStripePriceId,
 } from "./stripe-checkout-policy";
 
 describe("Stripe checkout policy", () => {
-  it("parses and de-duplicates the configured Price ID allowlist", () => {
-    assert.deepEqual(
-      parseAllowedStripePriceIds(" price_one,price_two, price_one "),
-      ["price_one", "price_two"],
-    );
+  it("parses one configured Price ID", () => {
+    assert.equal(parseStripePriceId(" price_123 "), "price_123");
   });
 
-  it("rejects an empty or malformed Price ID allowlist", () => {
-    assert.throws(() => parseAllowedStripePriceIds(" , "));
-    assert.throws(() => parseAllowedStripePriceIds("price_valid,not-a-price"));
+  it("rejects an empty, malformed, or multiple Price ID configuration", () => {
+    assert.throws(() => parseStripePriceId(" "));
+    assert.throws(() => parseStripePriceId("not-a-price"));
+    assert.throws(() => parseStripePriceId("price_valid,price_other"));
   });
 
   it("creates a Stripe success URL with the Checkout Session placeholder", () => {

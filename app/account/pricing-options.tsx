@@ -48,56 +48,55 @@ function formatInterval(plan: CheckoutPlan): string {
 }
 
 export function PricingOptions({ returnTo }: PricingOptionsProps) {
-  const [plans, setPlans] = useState<CheckoutPlan[] | null>(null);
-  const [plansError, setPlansError] = useState(false);
+  const [plan, setPlan] = useState<CheckoutPlan | null>(null);
+  const [priceError, setPriceError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [pendingPriceId, setPendingPriceId] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadPlans() {
-      setPlansError(false);
+    async function loadPrice() {
+      setPriceError(false);
 
       try {
-        const response = await fetch("/api/billing/plans", {
+        const response = await fetch("/api/billing/price", {
           cache: "no-store",
         });
         if (!response.ok) {
-          throw new Error("Unable to load subscription plans.");
+          throw new Error("Unable to load the subscription price.");
         }
 
         const body: unknown = await response.json();
         if (
           !body ||
           typeof body !== "object" ||
-          !("plans" in body) ||
-          !Array.isArray(body.plans) ||
-          !body.plans.every(isCheckoutPlan)
+          !("plan" in body) ||
+          !isCheckoutPlan(body.plan)
         ) {
-          throw new Error("The subscription plans response was invalid.");
+          throw new Error("The subscription price response was invalid.");
         }
 
         if (!cancelled) {
-          setPlans(body.plans);
+          setPlan(body.plan);
         }
       } catch {
         if (!cancelled) {
-          setPlansError(true);
+          setPriceError(true);
         }
       }
     }
 
-    void loadPlans();
+    void loadPrice();
 
     return () => {
       cancelled = true;
     };
   }, [attempt]);
 
-  async function beginCheckout(priceId: string) {
-    setPendingPriceId(priceId);
+  async function beginCheckout() {
+    setIsPending(true);
     setError("");
 
     try {
@@ -105,7 +104,7 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId, returnTo }),
+        body: JSON.stringify({ returnTo }),
       });
 
       const body: unknown = await response.json();
@@ -137,20 +136,20 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
           ? caught.message
           : "We couldn't start checkout. Please try again.",
       );
-      setPendingPriceId(null);
+      setIsPending(false);
     }
   }
 
   return (
-    <section aria-label="Available subscription plans">
-      {plansError ? (
+    <section aria-label="Subscription">
+      {priceError ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
-          <p>We couldn&apos;t load plans. Please try again.</p>
+          <p>We couldn&apos;t load the subscription price. Please try again.</p>
           <button
             className="mt-3 font-semibold underline underline-offset-4"
             onClick={() => {
-              setPlans(null);
-              setPlansError(false);
+              setPlan(null);
+              setPriceError(false);
               setAttempt((current) => current + 1);
             }}
             type="button"
@@ -158,24 +157,21 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
             Retry
           </button>
         </div>
-      ) : plans === null ? (
+      ) : plan === null ? (
         <p aria-live="polite" className="text-sm text-zinc-600" role="status">
-          Loading plans...
+          Loading subscription price...
         </p>
       ) : (
         <>
-      {error ? (
-        <p className="mb-5 text-sm text-red-700" role="alert">
-          {error}
-        </p>
-      ) : null}
-      <div className="grid gap-5 sm:grid-cols-2">
-        {plans.map((plan) => (
-          <article
-            className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm"
-            key={plan.priceId}
-          >
-            <h2 className="text-lg font-semibold text-zinc-950">{plan.name}</h2>
+          {error ? (
+            <p className="mb-5 text-sm text-red-700" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <article className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-zinc-950">
+              {plan.name}
+            </h2>
             {plan.description ? (
               <p className="mt-2 text-sm leading-6 text-zinc-600">
                 {plan.description}
@@ -189,17 +185,13 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
             </p>
             <button
               className="mt-5 flex w-full items-center justify-center rounded-lg bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={pendingPriceId !== null}
-              onClick={() => void beginCheckout(plan.priceId)}
+              disabled={isPending}
+              onClick={() => void beginCheckout()}
               type="button"
             >
-              {pendingPriceId === plan.priceId
-                ? "Opening secure checkout..."
-                : "Choose plan"}
+              {isPending ? "Opening secure checkout..." : "Subscribe"}
             </button>
           </article>
-        ))}
-      </div>
         </>
       )}
     </section>

@@ -1,19 +1,13 @@
 export const STRIPE_METADATA_VALUE_MAX_LENGTH = 500;
 
-export function parseAllowedStripePriceIds(value: string): string[] {
-  const priceIds = value
-    .split(",")
-    .map((priceId) => priceId.trim())
-    .filter(Boolean);
+export function parseStripePriceId(value: string): string {
+  const priceId = value.trim();
 
-  if (
-    priceIds.length === 0 ||
-    priceIds.some((priceId) => !/^price_[A-Za-z0-9]+$/.test(priceId))
-  ) {
-    throw new Error("STRIPE_ALLOWED_PRICE_IDS contains an invalid Price ID.");
+  if (!/^price_[A-Za-z0-9]+$/.test(priceId)) {
+    throw new Error("STRIPE_PRICE_ID must contain a valid Price ID.");
   }
 
-  return [...new Set(priceIds)];
+  return priceId;
 }
 
 export function isCheckoutSessionId(value: string): boolean {

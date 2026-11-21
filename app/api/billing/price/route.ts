@@ -1,5 +1,5 @@
 import { getServerSession } from "@/lib/session";
-import { listAllowedCheckoutPlans } from "@/lib/stripe-checkout";
+import { getCurrentCheckoutPlan } from "@/lib/stripe-checkout";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 
@@ -13,6 +13,6 @@ export async function GET() {
     );
   }
 
-  const plans = await listAllowedCheckoutPlans();
-  return Response.json({ plans }, { headers: noStoreHeaders });
+  const plan = await getCurrentCheckoutPlan();
+  return Response.json({ plan }, { headers: noStoreHeaders });
 }

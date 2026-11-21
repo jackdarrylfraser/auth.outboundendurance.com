@@ -57,18 +57,20 @@ as the application.
 ## Stripe Checkout
 
 Set `STRIPE_SECRET_KEY` in `.env.local` or the deployment platform's secret
-settings. Set `STRIPE_ALLOWED_PRICE_IDS` to a comma-separated allowlist of
-recurring Stripe Price IDs that users can purchase. These IDs are not secrets;
-the server rejects any price that is not on this list.
+settings. Set `STRIPE_PRICE_ID` to the recurring Stripe Price ID users can
+purchase. The server validates this configured price and uses it for every
+checkout.
 
 `/account` requires sign-in. Users without an `active` or `trialing`
-subscription can select an allowlisted plan. `POST /api/billing/checkout-session`
-creates a Stripe-hosted Checkout Session for that price and stores the validated
-`returnTo` URL and user ID in the Checkout Session metadata. Configure no
-additional database state for this redirect flow. Stripe returns the browser to
-`/billing/return` with the Checkout Session ID; the return page retrieves the
-metadata from Stripe and polls for the entitlement update from the webhook. It
-redirects to `returnTo` only after entitlement is confirmed.
+subscription see the current price and one Subscribe button.
+`POST /api/billing/checkout-session` creates a Stripe-hosted Checkout Session
+for `STRIPE_PRICE_ID`; the client cannot choose a different price, and users
+with paid access cannot start another subscription. The session stores the
+validated `returnTo` URL and user ID in Checkout metadata. Configure no
+additional database state for this redirect flow. Stripe returns the browser
+to `/billing/return` with the Checkout Session ID; the return page retrieves
+the metadata from Stripe and polls for the entitlement update from the webhook.
+It redirects to `returnTo` only after entitlement is confirmed.
 
 Consuming apps should make the access check server-to-server, then redirect the
 user's browser to the auth site with the originally requested page in its
@@ -79,12 +81,13 @@ The consuming app should repeat its server-to-server access check on arrival.
 Return URLs are limited to the auth service and, in production,
 `outboundendurance.com` and its HTTPS subdomains.
 
-Configure the Stripe Customer Portal's default configuration to enable payment
-method updates, subscription updates for the plans offered by this service, and
-subscription cancellation with the mode set to `at_period_end`. Authenticated
-customers with a Stripe customer mapping can open the portal from `/account` to
-update payment information or manage their subscription. Portal sessions return
-to `/account`.
+Configure the Stripe Customer Portal to allow payment method updates and
+subscription cancellation at the end of the current billing period. Disable
+subscription or price switching. Authenticated customers with a Stripe customer
+mapping can open the portal from `/account` to manage or cancel their
+subscription. A scheduled cancellation remains `active` until the paid period
+ends, so entitlement continues during that period; access ends when Stripe
+reports the subscription as canceled. Portal sessions return to `/account`.
 
 ## Stripe webhooks
 

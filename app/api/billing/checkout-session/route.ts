@@ -1,7 +1,11 @@
 import { getServerSession } from "@/lib/session";
 import { env } from "@/lib/env";
+import {
+  requirePaidAccess,
+} from "@/lib/entitlement";
+import { PaidAccessRequiredError } from "@/lib/entitlement-policy";
 import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
-import { getAllowedCheckoutPlan } from "@/lib/stripe-checkout";
+import { getCurrentCheckoutPlan } from "@/lib/stripe-checkout";
 import {
   getCheckoutCancelUrl,
   getCheckoutSuccessUrl,
@@ -21,6 +25,18 @@ export async function POST(request: Request) {
     );
   }
 
+  try {
+    await requirePaidAccess(session.user.id);
+    return Response.json(
+      { error: "This account already has paid access." },
+      { status: 409, headers: noStoreHeaders },
+    );
+  } catch (error) {
+    if (!(error instanceof PaidAccessRequiredError)) {
+      throw error;
+    }
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -34,17 +50,9 @@ export async function POST(request: Request) {
     throw error;
   }
 
-  if (!body || typeof body !== "object" || !("priceId" in body)) {
+  if (!body || typeof body !== "object") {
     return Response.json(
-      { error: "A Stripe Price ID is required." },
-      { status: 400, headers: noStoreHeaders },
-    );
-  }
-
-  const { priceId } = body;
-  if (typeof priceId !== "string" || priceId.length === 0) {
-    return Response.json(
-      { error: "A valid Stripe Price ID is required." },
+      { error: "Invalid request body." },
       { status: 400, headers: noStoreHeaders },
     );
   }
@@ -79,13 +87,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const plan = await getAllowedCheckoutPlan(priceId);
-  if (!plan) {
-    return Response.json(
-      { error: "That plan is not available." },
-      { status: 400, headers: noStoreHeaders },
-    );
-  }
+  const plan = await getCurrentCheckoutPlan();
 
   const customerId = await getOrCreateStripeCustomer({
     id: session.user.id,

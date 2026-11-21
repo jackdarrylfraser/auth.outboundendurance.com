@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { env } from "./env";
 import { stripe } from "./stripe";
-import { parseAllowedStripePriceIds } from "./stripe-checkout-policy";
+import { parseStripePriceId } from "./stripe-checkout-policy";
 
 export type CheckoutPlan = {
   priceId: string;
@@ -13,24 +13,8 @@ export type CheckoutPlan = {
   intervalCount: number;
 };
 
-function getAllowedPriceIds(): string[] {
-  return parseAllowedStripePriceIds(env.STRIPE_ALLOWED_PRICE_IDS);
-}
-
-export async function listAllowedCheckoutPlans(): Promise<CheckoutPlan[]> {
-  return Promise.all(
-    getAllowedPriceIds().map((priceId) => getCheckoutPlan(priceId)),
-  );
-}
-
-export async function getAllowedCheckoutPlan(
-  priceId: string,
-): Promise<CheckoutPlan | null> {
-  if (!getAllowedPriceIds().includes(priceId)) {
-    return null;
-  }
-
-  return getCheckoutPlan(priceId);
+export async function getCurrentCheckoutPlan(): Promise<CheckoutPlan> {
+  return getCheckoutPlan(parseStripePriceId(env.STRIPE_PRICE_ID));
 }
 
 async function getCheckoutPlan(priceId: string): Promise<CheckoutPlan> {

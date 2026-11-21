@@ -90,11 +90,6 @@ async function AccountContent({ searchParams }: AccountPageProps) {
             Select a plan below to continue. Checkout is securely hosted by
             Stripe.
           </p>
-          {stripeCustomerId ? (
-            <div className="mt-5">
-              <BillingPortalButton />
-            </div>
-          ) : null}
           <div className="mt-8">
             <PricingOptions returnTo={returnTo} />
           </div>
@@ -119,8 +114,9 @@ async function AccountContent({ searchParams }: AccountPageProps) {
           Your plan is active
         </h1>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
-          You have access to your paid membership. Manage your subscription and
-          payment information through Stripe.
+          You have access to your paid membership. If you cancel, your access
+          continues through the end of your paid period. Manage or cancel your
+          subscription through Stripe.
         </p>
         {stripeCustomerId ? (
           <div className="mt-6">
