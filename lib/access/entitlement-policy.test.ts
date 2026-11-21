@@ -5,7 +5,7 @@ import {
   hasPaidEntitlement,
   isSubscriptionStale,
   PaidAccessRequiredError,
-} from "./entitlement-policy";
+} from "@/lib/access/entitlement-policy";
 
 describe("paid entitlement policy", () => {
   it("uses a 24-hour freshness window for subscription snapshots", () => {

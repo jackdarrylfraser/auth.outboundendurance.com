@@ -4,14 +4,14 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
 import Stripe from "stripe";
 import { z } from "zod";
-import { stripeCatalog } from "../lib/db/schema";
+import { stripeCatalog } from "@/lib/db/schema";
 import {
   assertStripeSubscriptionDefinitionIsConfigured,
   getStripeLivemode,
   STRIPE_CATALOG_MANAGED_BY,
   STRIPE_SUBSCRIPTION_CATALOG_KEY,
   stripeSubscriptionDefinition,
-} from "../lib/stripe-catalog-definition";
+} from "@/lib/billing/stripe/catalog-definition";
 
 const scriptEnv = z
   .object({

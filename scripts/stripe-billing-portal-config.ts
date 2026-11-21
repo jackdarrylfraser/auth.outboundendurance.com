@@ -2,12 +2,12 @@ import Stripe from "stripe";
 import { z } from "zod";
 import {
   findStripeBillingPortalConfiguration,
-} from "../lib/stripe-billing-portal";
+} from "@/lib/billing/stripe/billing-portal";
 import {
   getStripeBillingPortalConfigurationFeatures,
   STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER,
   STRIPE_BILLING_PORTAL_CONFIGURATION_NAME,
-} from "../lib/stripe-billing-portal-policy";
+} from "@/lib/billing/stripe/billing-portal-policy";
 
 const scriptEnv = z
   .object({

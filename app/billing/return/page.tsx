@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
-import { getServerSession } from "@/lib/session";
-import { BillingReturnStatus } from "./billing-return-status";
+import { getServerSession } from "@/lib/auth/session";
+import { BillingReturnStatus } from "@/app/billing/return/billing-return-status";
 
 export const metadata: Metadata = {
   title: "Billing status | Outbound Endurance",

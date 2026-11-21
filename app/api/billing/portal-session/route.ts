@@ -1,7 +1,7 @@
-import { getServerSession } from "@/lib/session";
+import { getServerSession } from "@/lib/auth/session";
 import { env } from "@/lib/env";
-import { getStripeCustomerId, stripe } from "@/lib/stripe";
-import { findStripeBillingPortalConfiguration } from "@/lib/stripe-billing-portal";
+import { getStripeCustomerId, stripe } from "@/lib/billing/stripe/client";
+import { findStripeBillingPortalConfiguration } from "@/lib/billing/stripe/billing-portal";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 

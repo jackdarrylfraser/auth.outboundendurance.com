@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createAccessHandler } from "./access-handler";
-import { PaidAccessRequiredError } from "./entitlement-policy";
+import { createAccessHandler } from "@/lib/access/handler";
+import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
 
 describe("cross-app access endpoint", () => {
   it("returns an uncached entitlement result for the authenticated user", async () => {

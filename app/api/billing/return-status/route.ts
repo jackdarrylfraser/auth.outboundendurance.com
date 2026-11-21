@@ -1,11 +1,11 @@
-import { getServerSession } from "@/lib/session";
-import { PaidAccessRequiredError } from "@/lib/entitlement-policy";
-import { requirePaidAccess } from "@/lib/entitlement";
+import { getServerSession } from "@/lib/auth/session";
+import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
+import { requirePaidAccess } from "@/lib/access/entitlement";
 import { env } from "@/lib/env";
-import { getStripeCustomerId, stripe } from "@/lib/stripe";
-import { getStripeCustomerIdFromSession } from "@/lib/stripe-checkout";
-import { isCheckoutSessionId } from "@/lib/stripe-checkout-policy";
-import { getAllowedReturnUrl } from "@/lib/return-url";
+import { getStripeCustomerId, stripe } from "@/lib/billing/stripe/client";
+import { getStripeCustomerIdFromSession } from "@/lib/billing/stripe/checkout";
+import { isCheckoutSessionId } from "@/lib/billing/stripe/checkout-policy";
+import { getAllowedReturnUrl } from "@/lib/auth/return-url";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 

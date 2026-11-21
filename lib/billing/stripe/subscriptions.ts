@@ -1,9 +1,9 @@
 import { eq, lte } from "drizzle-orm";
 import Stripe from "stripe";
-import { db } from "./db";
-import { stripeCustomer, stripeSubscription, user } from "./db/schema";
-import { stripe } from "./stripe";
-import { getVerifiedStripeCustomerUserId } from "./stripe-customer-link";
+import { db } from "@/lib/db";
+import { stripeCustomer, stripeSubscription, user } from "@/lib/db/schema";
+import { stripe } from "@/lib/billing/stripe/client";
+import { getVerifiedStripeCustomerUserId } from "@/lib/billing/stripe/customer-link";
 
 export class UnlinkedStripeCustomerError extends Error {
   constructor(customerId: string) {

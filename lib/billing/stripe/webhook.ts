@@ -1,12 +1,12 @@
 import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { stripeEvent } from "./db/schema";
-import { stripe } from "./stripe";
-import { syncStripeSubscription } from "./stripe-subscriptions";
+import { db } from "@/lib/db";
+import { stripeEvent } from "@/lib/db/schema";
+import { stripe } from "@/lib/billing/stripe/client";
+import { syncStripeSubscription } from "@/lib/billing/stripe/subscriptions";
 import {
   getStripeSubscriptionId,
   type StripeWebhookEvent,
-} from "./stripe-webhook-policy";
+} from "@/lib/billing/stripe/webhook-policy";
 
 export async function processStripeWebhookEvent(
   event: StripeWebhookEvent,

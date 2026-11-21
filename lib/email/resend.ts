@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { env } from "./env";
+import { env } from "@/lib/env";
 
 let resendClient: Resend | undefined;
 

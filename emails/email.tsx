@@ -1,6 +1,6 @@
-import { VerificationCodeEmail } from "./verification-code";
-import { env } from "../lib/env";
-import { getResendClient } from "../lib/resend";
+import { VerificationCodeEmail } from "@/emails/verification-code";
+import { env } from "@/lib/env";
+import { getResendClient } from "@/lib/email/resend";
 
 export async function sendVerificationCode(email: string, otp: string) {
   const { error } = await getResendClient().emails.send({

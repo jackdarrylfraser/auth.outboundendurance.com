@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { CheckoutPlan } from "@/lib/stripe-checkout";
+import type { CheckoutPlan } from "@/lib/billing/stripe/checkout";
 
 type PricingOptionsProps = {
   returnTo: string | null;

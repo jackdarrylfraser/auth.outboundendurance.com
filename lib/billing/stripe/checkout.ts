@@ -1,9 +1,9 @@
 import Stripe from "stripe";
 import { eq } from "drizzle-orm";
-import { env } from "./env";
-import { db } from "./db";
-import { stripeCatalog } from "./db/schema";
-import { getStripeLivemode } from "./stripe-catalog-definition";
+import { env } from "@/lib/env";
+import { db } from "@/lib/db";
+import { stripeCatalog } from "@/lib/db/schema";
+import { getStripeLivemode } from "@/lib/billing/stripe/catalog-definition";
 
 export type CheckoutPlan = {
   priceId: string;

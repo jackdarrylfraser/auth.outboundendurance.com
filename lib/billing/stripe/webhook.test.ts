@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 import {
   getStripeSubscriptionId,
   type StripeWebhookEvent,
-} from "./stripe-webhook-policy";
-import { getVerifiedStripeCustomerUserId } from "./stripe-customer-link";
+} from "@/lib/billing/stripe/webhook-policy";
+import { getVerifiedStripeCustomerUserId } from "@/lib/billing/stripe/customer-link";
 
 function event(
   type: string,

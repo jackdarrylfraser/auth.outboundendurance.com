@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
-import { env } from "./env";
-import { db } from "./db";
-import { stripeCustomer } from "./db/schema";
+import { env } from "@/lib/env";
+import { db } from "@/lib/db";
+import { stripeCustomer } from "@/lib/db/schema";
 
 export const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 

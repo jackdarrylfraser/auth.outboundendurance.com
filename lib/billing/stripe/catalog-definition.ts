@@ -26,25 +26,25 @@ export function assertStripeSubscriptionDefinitionIsConfigured(): void {
     product.description?.startsWith("REPLACE_WITH_")
   ) {
     throw new Error(
-      "Replace the Stripe product name and description placeholders in lib/stripe-catalog-definition.ts.",
+      "Replace the Stripe product name and description placeholders in lib/billing/stripe/catalog-definition.ts.",
     );
   }
 
   if (!Number.isSafeInteger(price.unitAmount) || price.unitAmount <= 0) {
     throw new Error(
-      "Set the Stripe subscription amount in minor currency units in lib/stripe-catalog-definition.ts.",
+      "Set the Stripe subscription amount in minor currency units in lib/billing/stripe/catalog-definition.ts.",
     );
   }
 
   if (!/^[a-z]{3}$/.test(price.currency)) {
     throw new Error(
-      "Set the three-letter lowercase Stripe currency in lib/stripe-catalog-definition.ts.",
+      "Set the three-letter lowercase Stripe currency in lib/billing/stripe/catalog-definition.ts.",
     );
   }
 
   if (!Number.isSafeInteger(price.intervalCount) || price.intervalCount < 1) {
     throw new Error(
-      "Set a positive Stripe subscription interval count in lib/stripe-catalog-definition.ts.",
+      "Set a positive Stripe subscription interval count in lib/billing/stripe/catalog-definition.ts.",
     );
   }
 }

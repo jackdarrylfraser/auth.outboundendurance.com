@@ -1,12 +1,12 @@
 import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { stripeCustomer, stripeSubscription } from "./db/schema";
+import { db } from "@/lib/db";
+import { stripeCustomer, stripeSubscription } from "@/lib/db/schema";
 import {
   createPaidAccessGuard,
   isSubscriptionStale,
-} from "./entitlement-policy";
-import { stripe } from "./stripe";
-import { syncStripeSubscription } from "./stripe-subscriptions";
+} from "@/lib/access/entitlement-policy";
+import { stripe } from "@/lib/billing/stripe/client";
+import { syncStripeSubscription } from "@/lib/billing/stripe/subscriptions";
 
 export const requirePaidAccess = createPaidAccessGuard(async (userId) => {
   const subscriptions = await loadSubscriptions(userId);

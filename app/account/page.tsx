@@ -2,13 +2,13 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
-import { PaidAccessRequiredError } from "@/lib/entitlement-policy";
-import { requirePaidAccess } from "@/lib/entitlement";
-import { getAllowedReturnUrl } from "@/lib/return-url";
-import { getServerSession } from "@/lib/session";
-import { getStripeCustomerId } from "@/lib/stripe";
-import { BillingPortalButton } from "./billing-portal-button";
-import { PricingOptions } from "./pricing-options";
+import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
+import { requirePaidAccess } from "@/lib/access/entitlement";
+import { getAllowedReturnUrl } from "@/lib/auth/return-url";
+import { getServerSession } from "@/lib/auth/session";
+import { getStripeCustomerId } from "@/lib/billing/stripe/client";
+import { BillingPortalButton } from "@/app/account/billing-portal-button";
+import { PricingOptions } from "@/app/account/pricing-options";
 
 export const metadata: Metadata = {
   title: "Account | Outbound Endurance",

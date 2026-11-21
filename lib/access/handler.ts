@@ -1,4 +1,4 @@
-import { PaidAccessRequiredError } from "./entitlement-policy";
+import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 

@@ -4,7 +4,7 @@ import {
   getCheckoutCancelUrl,
   getCheckoutSuccessUrl,
   isCheckoutSessionId,
-} from "./stripe-checkout-policy";
+} from "@/lib/billing/stripe/checkout-policy";
 
 describe("Stripe checkout policy", () => {
   it("creates a Stripe success URL with the Checkout Session placeholder", () => {

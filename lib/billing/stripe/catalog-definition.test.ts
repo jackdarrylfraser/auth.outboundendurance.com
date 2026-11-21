@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import {
   assertStripeSubscriptionDefinitionIsConfigured,
   getStripeLivemode,
-} from "./stripe-catalog-definition";
+} from "@/lib/billing/stripe/catalog-definition";
 
 describe("Stripe subscription catalog definition", () => {
   it("requires the product and price placeholders to be replaced", () => {

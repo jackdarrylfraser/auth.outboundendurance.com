@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { env } from "@/lib/env";
-import { getAllowedReturnUrl } from "@/lib/return-url";
-import { SignInForm } from "./sign-in-form";
+import { getAllowedReturnUrl } from "@/lib/auth/return-url";
+import { SignInForm } from "@/app/sign-in-form";
 
 type HomeProps = {
   searchParams: Promise<{ returnTo?: string | string[] }>;

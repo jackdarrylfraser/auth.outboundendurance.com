@@ -1,4 +1,4 @@
-import { env } from "../env";
+import { env } from "@/lib/env";
 
 const { TURSO_DATABASE_URL: url, TURSO_AUTH_TOKEN: authToken } = env;
 

@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { selectStripeBillingPortalConfiguration } from "./stripe-billing-portal-policy";
+import { selectStripeBillingPortalConfiguration } from "@/lib/billing/stripe/billing-portal-policy";
 
 export async function findStripeBillingPortalConfiguration(
   stripeClient: Stripe,

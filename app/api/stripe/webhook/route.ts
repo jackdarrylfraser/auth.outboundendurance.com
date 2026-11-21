@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { stripeEvent } from "@/lib/db/schema";
 import { env } from "@/lib/env";
-import { stripe } from "@/lib/stripe";
-import { processStripeWebhookEvent } from "@/lib/stripe-webhook";
+import { stripe } from "@/lib/billing/stripe/client";
+import { processStripeWebhookEvent } from "@/lib/billing/stripe/webhook";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 

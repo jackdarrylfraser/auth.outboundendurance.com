@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { getAllowedReturnUrl } from "./return-url";
+import { getAllowedReturnUrl } from "@/lib/auth/return-url";
 
 describe("getAllowedReturnUrl", () => {
   const productionAuthUrl = "https://auth.outboundendurance.com";

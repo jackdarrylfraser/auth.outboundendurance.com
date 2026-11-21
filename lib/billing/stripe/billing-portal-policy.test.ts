@@ -6,7 +6,7 @@ import {
   selectStripeBillingPortalConfiguration,
   STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER,
   type StripeBillingPortalConfigurationCandidate,
-} from "./stripe-billing-portal-policy";
+} from "@/lib/billing/stripe/billing-portal-policy";
 
 function configuration(
   id: string,
