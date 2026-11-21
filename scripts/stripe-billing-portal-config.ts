@@ -5,6 +5,7 @@ import {
 } from "@/lib/billing/stripe/billing-portal";
 import {
   getStripeBillingPortalConfigurationFeatures,
+  STRIPE_CANCELLATION_FEEDBACK_OPTIONS,
   STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER,
   STRIPE_BILLING_PORTAL_CONFIGURATION_NAME,
 } from "@/lib/billing/stripe/billing-portal-policy";
@@ -25,6 +26,41 @@ const metadata = {
 };
 
 async function main() {
+  const activeFeedbackOptions: Stripe.Billing.FeedbackOption[] = [];
+  for await (const option of stripe.billing.feedbackOptions.list({
+    limit: 100,
+    status: "active",
+  })) {
+    activeFeedbackOptions.push(option);
+  }
+
+  const feedbackOptionIds = await Promise.all(
+    STRIPE_CANCELLATION_FEEDBACK_OPTIONS.map(async (description) => {
+      const matchingOptions = activeFeedbackOptions.filter(
+        (option) =>
+          option.description === description && option.livemode === isLiveMode,
+      );
+
+      if (matchingOptions.length > 1) {
+        throw new Error(
+          `Multiple active Stripe cancellation feedback options match "${description}".`,
+        );
+      }
+
+      const option =
+        matchingOptions[0] ??
+        (await stripe.billing.feedbackOptions.create({ description }));
+
+      if (option.livemode !== isLiveMode) {
+        throw new Error("Stripe returned a feedback option for the wrong mode.");
+      }
+
+      return option.id;
+    }),
+  );
+  const features =
+    getStripeBillingPortalConfigurationFeatures(feedbackOptionIds);
+
   const knownConfiguration =
     await findStripeBillingPortalConfiguration(stripe);
 
@@ -35,12 +71,12 @@ async function main() {
   const configuration = knownConfiguration
     ? await stripe.billingPortal.configurations.update(knownConfiguration.id, {
         active: true,
-        features: getStripeBillingPortalConfigurationFeatures(),
+      features,
         metadata,
         name: STRIPE_BILLING_PORTAL_CONFIGURATION_NAME,
       })
     : await stripe.billingPortal.configurations.create({
-        features: getStripeBillingPortalConfigurationFeatures(),
+      features,
         metadata,
         name: STRIPE_BILLING_PORTAL_CONFIGURATION_NAME,
       });
