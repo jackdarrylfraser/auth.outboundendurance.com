@@ -1,3 +1,9 @@
 {
-  "buildCommand": "bun run deploy"
+  "buildCommand": "bun run deploy",
+  "crons": [
+    {
+      "path": "/api/cron/sync-subscriptions",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
