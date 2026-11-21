@@ -6,8 +6,8 @@ export const STRIPE_CATALOG_MANAGED_BY = "auth.outboundendurance.com";
 
 export const stripeSubscriptionDefinition = {
   product: {
-    name: "REPLACE_WITH_PRODUCT_NAME",
-    description: "REPLACE_WITH_PRODUCT_DESCRIPTION",
+    name: "auth.outboundendurance.com - catalog definition",
+    description: "catalog definition for outboundendurance.com subscriptions",
   },
   price: {
     unitAmount: 0,
