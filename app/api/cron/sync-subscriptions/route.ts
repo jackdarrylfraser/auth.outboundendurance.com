@@ -1,4 +1,4 @@
-import { asc, lte } from "drizzle-orm";
+import { and, asc, gt, lte } from "drizzle-orm";
 import { env } from "@/lib/env";
 import { stripe } from "@/lib/billing/stripe/client";
 import { syncStripeSubscription } from "@/lib/billing/stripe/subscriptions";
@@ -10,7 +10,8 @@ export const maxDuration = 30;
 const noStoreHeaders = { "Cache-Control": "no-store" };
 const batchSize = 10;
 const stripeRequestTimeoutMs = 5_000;
-const subscriptionFreshnessMs = 24 * 60 * 60 * 1000;
+const subscriptionFreshnessMs = 23 * 60 * 60 * 1000;
+const processingBudgetMs = 20_000;
 
 export async function GET(request: Request) {
   if (!env.CRON_SECRET) {
@@ -28,21 +29,49 @@ export async function GET(request: Request) {
   }
 
   const staleBefore = new Date(Date.now() - subscriptionFreshnessMs);
-  const staleSubscriptions = await db
-    .select({
-      id: stripeSubscription.id,
-      lastEventCreatedAt: stripeSubscription.lastEventCreatedAt,
-    })
-    .from(stripeSubscription)
-    .where(lte(stripeSubscription.lastSyncedAt, staleBefore))
-    .orderBy(asc(stripeSubscription.lastSyncedAt))
-    .limit(batchSize);
-
+  const startedAt = Date.now();
+  let cursor: string | undefined;
+  let checked = 0;
   let synced = 0;
   const failures: string[] = [];
+  let timeBudgetReached = false;
 
-  for (const subscription of staleSubscriptions) {
-    try {
+  while (true) {
+    if (Date.now() - startedAt >= processingBudgetMs) {
+      timeBudgetReached = true;
+      break;
+    }
+
+    const staleSubscriptions = await db
+      .select({
+        id: stripeSubscription.id,
+        lastEventCreatedAt: stripeSubscription.lastEventCreatedAt,
+      })
+      .from(stripeSubscription)
+      .where(
+        cursor
+          ? and(
+              lte(stripeSubscription.lastSyncedAt, staleBefore),
+              gt(stripeSubscription.id, cursor),
+            )
+          : lte(stripeSubscription.lastSyncedAt, staleBefore),
+      )
+      .orderBy(asc(stripeSubscription.id))
+      .limit(batchSize);
+
+    if (staleSubscriptions.length === 0) {
+      break;
+    }
+
+    for (const subscription of staleSubscriptions) {
+      if (Date.now() - startedAt >= processingBudgetMs) {
+        timeBudgetReached = true;
+        break;
+      }
+
+      cursor = subscription.id;
+      checked += 1;
+      try {
         const current = await stripe.subscriptions.retrieve(
           subscription.id,
           {},
@@ -51,25 +80,33 @@ export async function GET(request: Request) {
         await syncStripeSubscription(current, {
           expectedLastEventCreatedAt: subscription.lastEventCreatedAt,
         });
-      synced += 1;
-    } catch (error) {
-      failures.push(subscription.id);
-      console.error("Subscription reconciliation failed.", {
-        subscriptionId: subscription.id,
-        error,
-      });
+        synced += 1;
+      } catch (error) {
+        failures.push(subscription.id);
+        console.error("Subscription reconciliation failed.", {
+          subscriptionId: subscription.id,
+          error,
+        });
+      }
+    }
+
+    if (timeBudgetReached) {
+      break;
     }
   }
 
+  const remaining = failures.length > 0 || timeBudgetReached;
   return Response.json(
     {
-      checked: staleSubscriptions.length,
+      checked,
       synced,
       failed: failures.length,
       failedSubscriptionIds: failures,
+      remaining,
+      timeBudgetReached,
     },
     {
-      status: failures.length > 0 ? 500 : 200,
+      status: remaining ? 500 : 200,
       headers: noStoreHeaders,
     },
   );

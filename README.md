@@ -148,13 +148,14 @@ subscription, and database errors propagate to the caller. Subscription
 snapshots are revalidated with Stripe after 24 hours; failures to refresh stale
 eligible snapshots fail closed.
 
-Vercel runs `GET /api/cron/sync-subscriptions` hourly to reconcile stale
-subscription snapshots, including non-active subscriptions. Configure a
-`CRON_SECRET` in Vercel's environment settings so only authenticated cron
-requests can trigger reconciliation. Each run processes at most 10 records,
-sequentially, with a five-second timeout per Stripe request; the route also
-has a 30-second maximum duration. Failed records are logged and reported as a
-failed response for monitoring.
+Vercel runs `GET /api/cron/sync-subscriptions` daily at 00:00 UTC to reconcile
+subscription snapshots at least 23 hours old, including non-active
+subscriptions. Configure a `CRON_SECRET` in Vercel's environment settings so
+only authenticated cron requests can trigger reconciliation. Each run
+fetches pages of 10 records and processes them sequentially until it catches up
+or reaches its 20-second work budget. Stripe requests time out after five
+seconds, and the route has a 30-second maximum duration. Failed records are
+logged; the response reports when work remains for the next daily run.
 
 Consuming apps can check the current request's entitlement with
 `GET /api/access`. Forward the user's Better Auth session cookie from the
