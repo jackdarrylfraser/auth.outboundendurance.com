@@ -25,7 +25,7 @@ export async function getCurrentCheckoutPlan(): Promise<CheckoutPlan> {
 
   if (!catalog) {
     throw new Error(
-      `The Stripe ${livemode ? "live" : "test"} subscription catalog is not synchronized. Run \`bun run stripe:sync-catalog\` before deploying.`,
+      `The Stripe ${livemode ? "live" : "test"} subscription catalog is not synchronized. Run \`bun run stripe:catalog:sync\` before deploying.`,
     );
   }
 

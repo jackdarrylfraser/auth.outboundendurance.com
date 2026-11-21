@@ -63,12 +63,13 @@ units), currency, and recurring interval in
 the price amount before deploying; the sync command rejects unfinished
 placeholders.
 
-`bun run stripe:sync-catalog` finds the product by its stable Stripe metadata
+`bun run stripe:catalog:sync` finds the product by its stable Stripe metadata
 marker (or by the configured name on first sync), creates it if it is missing,
 and finds or creates the matching recurring price. It stores the resolved
 product and price IDs plus the display details in `stripe_catalog`, separately
-for test and live mode. The pricing and checkout requests read this record and
-do not make Stripe product or price lookup requests.
+for test and live mode. Run it as part of `bun run deploy:prepare`, or manually
+after changing the catalog definition. The pricing and checkout requests read
+this record and do not make Stripe product or price lookup requests.
 
 `/account` requires sign-in. Users without an `active` or `trialing`
 subscription see the current price and one Subscribe button.
@@ -113,7 +114,8 @@ The Billing Portal sync finds a configuration with the required features and
 updates it, or creates one if none exists. It enables payment method updates,
 invoice history, and cancellation at the period end; it disables subscription
 updates and pauses. No configuration ID needs to be added to the app
-environment. `bun run stripe:portal-config` can also be run on its own.
+environment. `bun run stripe:portal:configure` can also be run on its own when
+the Billing Portal configuration needs to be created or updated.
 
 Authenticated customers with a Stripe customer mapping can open the portal from
 `/account` to update payment information, view invoices, or cancel their
@@ -156,6 +158,20 @@ fetches pages of 10 records and processes them sequentially until it catches up
 or reaches its 20-second work budget. Stripe requests time out after five
 seconds, and the route has a 30-second maximum duration. Failed records are
 logged; the response reports when work remains for the next daily run.
+
+To trigger subscription reconciliation manually (the cron normally runs daily),
+install and link the Vercel CLI, then run the command with the target deployment
+URL:
+
+```sh
+bun run stripe:subscriptions:reconcile -- production https://auth.outboundendurance.com
+bun run stripe:subscriptions:reconcile -- preview https://your-preview.vercel.app --branch staging
+```
+
+The script loads `CRON_SECRET` directly from the selected Vercel environment
+without writing it locally, then sends it as the endpoint's bearer token. A
+preview target can use branch-specific Preview variables with `--branch`.
+Production runs update production subscription records.
 
 Consuming apps can check the current request's entitlement with
 `GET /api/access`. Forward the user's Better Auth session cookie from the

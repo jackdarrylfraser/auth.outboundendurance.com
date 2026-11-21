@@ -27,7 +27,7 @@ export async function POST() {
   const configuration = await findStripeBillingPortalConfiguration(stripe);
   if (!configuration) {
     throw new Error(
-      "No active Stripe Billing Portal configuration has the required features. Run `bun run stripe:portal-config` with this environment's Stripe secret key.",
+      "No active Stripe Billing Portal configuration has the required features. Run `bun run stripe:portal:configure` with this environment's Stripe secret key.",
     );
   }
 
