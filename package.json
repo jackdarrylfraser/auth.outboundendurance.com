@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "deploy": "bun run build && bun run stripe:portal-config && bun run deploy:db:migrate",
+    "deploy": "bun run deploy:prepare && bun run build",
+    "deploy:prepare": "bun run db:migrate && bun run stripe:sync-catalog && bun run stripe:portal-config",
     "start": "next start",
     "lint": "eslint",
     "test": "bun test",
+    "stripe:sync-catalog": "bun run scripts/stripe-catalog-sync.ts",
     "stripe:portal-config": "bun run scripts/stripe-billing-portal-config.ts",
     "db:check": "bun run scripts/check-db.ts",
     "db:generate": "drizzle-kit generate",

@@ -150,6 +150,19 @@ export const stripeEvent = sqliteTable("stripe_event", {
   processedAt: integer("processed_at", { mode: "timestamp_ms" }),
 });
 
+export const stripeCatalog = sqliteTable("stripe_catalog", {
+  livemode: integer("livemode", { mode: "boolean" }).primaryKey().notNull(),
+  stripeProductId: text("stripe_product_id").notNull(),
+  stripePriceId: text("stripe_price_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  unitAmount: integer("unit_amount").notNull(),
+  currency: text("currency").notNull(),
+  interval: text("interval").notNull(),
+  intervalCount: integer("interval_count").notNull(),
+  syncedAt: integer("synced_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),

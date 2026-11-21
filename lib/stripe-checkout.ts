@@ -1,7 +1,9 @@
 import Stripe from "stripe";
+import { eq } from "drizzle-orm";
 import { env } from "./env";
-import { stripe } from "./stripe";
-import { parseStripePriceId } from "./stripe-checkout-policy";
+import { db } from "./db";
+import { stripeCatalog } from "./db/schema";
+import { getStripeLivemode } from "./stripe-catalog-definition";
 
 export type CheckoutPlan = {
   priceId: string;
@@ -14,45 +16,27 @@ export type CheckoutPlan = {
 };
 
 export async function getCurrentCheckoutPlan(): Promise<CheckoutPlan> {
-  return getCheckoutPlan(parseStripePriceId(env.STRIPE_PRICE_ID));
-}
+  const livemode = getStripeLivemode(env.STRIPE_SECRET_KEY);
+  const [catalog] = await db
+    .select()
+    .from(stripeCatalog)
+    .where(eq(stripeCatalog.livemode, livemode))
+    .limit(1);
 
-async function getCheckoutPlan(priceId: string): Promise<CheckoutPlan> {
-  const price = await stripe.prices.retrieve(priceId, {
-    expand: ["product"],
-  });
-
-  if (
-    !price.active ||
-    price.type !== "recurring" ||
-    !price.recurring ||
-    price.unit_amount === null
-  ) {
+  if (!catalog) {
     throw new Error(
-      `Configured Stripe Price ${priceId} must be an active recurring price with a fixed amount.`,
+      `The Stripe ${livemode ? "live" : "test"} subscription catalog is not synchronized. Run \`bun run stripe:sync-catalog\` before deploying.`,
     );
   }
 
-  const product =
-    typeof price.product === "string"
-      ? await stripe.products.retrieve(price.product)
-      : price.product;
-
-  if ("deleted" in product && product.deleted) {
-    throw new Error(`Configured Stripe Price ${priceId} has a deleted product.`);
-  }
-  if (!product.active) {
-    throw new Error(`Configured Stripe Price ${priceId} has an inactive product.`);
-  }
-
   return {
-    priceId: price.id,
-    name: product.name,
-    description: product.description,
-    unitAmount: price.unit_amount,
-    currency: price.currency,
-    interval: price.recurring.interval,
-    intervalCount: price.recurring.interval_count,
+    priceId: catalog.stripePriceId,
+    name: catalog.name,
+    description: catalog.description,
+    unitAmount: catalog.unitAmount,
+    currency: catalog.currency,
+    interval: catalog.interval,
+    intervalCount: catalog.intervalCount,
   };
 }
 

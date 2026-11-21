@@ -1,15 +1,5 @@
 export const STRIPE_METADATA_VALUE_MAX_LENGTH = 500;
 
-export function parseStripePriceId(value: string): string {
-  const priceId = value.trim();
-
-  if (!/^price_[A-Za-z0-9]+$/.test(priceId)) {
-    throw new Error("STRIPE_PRICE_ID must contain a valid Price ID.");
-  }
-
-  return priceId;
-}
-
 export function isCheckoutSessionId(value: string): boolean {
   return /^cs_(test|live)_[A-Za-z0-9]+$/.test(value);
 }

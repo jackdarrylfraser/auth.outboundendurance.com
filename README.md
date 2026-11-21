@@ -57,20 +57,28 @@ as the application.
 ## Stripe Checkout
 
 Set `STRIPE_SECRET_KEY` in `.env.local` or the deployment platform's secret
-settings. Set `STRIPE_PRICE_ID` to the recurring Stripe Price ID users can
-purchase. The server validates this configured price and uses it for every
-checkout.
+settings. Define the product name, description, amount (in minor currency
+units), currency, and recurring interval in
+`lib/stripe-catalog-definition.ts`. Replace all `REPLACE_WITH_` values and set
+the price amount before deploying; the sync command rejects unfinished
+placeholders.
+
+`bun run stripe:sync-catalog` finds the product by its stable Stripe metadata
+marker (or by the configured name on first sync), creates it if it is missing,
+and finds or creates the matching recurring price. It stores the resolved
+product and price IDs plus the display details in `stripe_catalog`, separately
+for test and live mode. The pricing and checkout requests read this record and
+do not make Stripe product or price lookup requests.
 
 `/account` requires sign-in. Users without an `active` or `trialing`
 subscription see the current price and one Subscribe button.
 `POST /api/billing/checkout-session` creates a Stripe-hosted Checkout Session
-for `STRIPE_PRICE_ID`; the client cannot choose a different price, and users
-with paid access cannot start another subscription. The session stores the
-validated `returnTo` URL and user ID in Checkout metadata. Configure no
-additional database state for this redirect flow. Stripe returns the browser
-to `/billing/return` with the Checkout Session ID; the return page retrieves
-the metadata from Stripe and polls for the entitlement update from the webhook.
-It redirects to `returnTo` only after entitlement is confirmed.
+for the synchronized price; the client cannot choose a different price, and
+users with paid access cannot start another subscription. The session stores
+the validated `returnTo` URL and user ID in Checkout metadata. Stripe returns
+the browser to `/billing/return` with the Checkout Session ID; the return page
+retrieves the metadata from Stripe and polls for the entitlement update from
+the webhook. It redirects to `returnTo` only after entitlement is confirmed.
 
 Consuming apps should make the access check server-to-server, then redirect the
 user's browser to the auth site with the originally requested page in its
@@ -82,29 +90,30 @@ Return URLs are limited to the auth service and, in production,
 `outboundendurance.com` and its HTTPS subdomains.
 
 The app manages its Customer Portal configuration through the Stripe API.
-`bun run build` only builds the app. Configure the deployment's build command
-as `bun run build` and its pre-deploy or release command as:
+`bun run build` only builds the app. Configure the deployment to run
+`bun run deploy:prepare` as its pre-deploy or release command, followed by
+`bun run build`:
 
 ```sh
 bun run deploy:prepare
 ```
 
-This runs `bun run db:migrate` followed by `bun run stripe:portal-config`.
-Provide the deployment's database credentials and its Stripe secret key to this
-step, and run it once per deployment before the new app version receives
-traffic. Use a test-mode key for test environments and a live-mode key for
-production; Stripe keeps configurations separate by mode.
+This applies migrations, synchronizes the code-defined product and price, then
+syncs the Billing Portal configuration. Provide the deployment's database
+credentials and Stripe secret key to this step, and run it before the new app
+version receives traffic. Use a test-mode key for test environments and a
+live-mode key for production; Stripe keeps products, prices, and portal
+configurations separate by mode.
 
 If the deployment platform expects one command for the whole sequence, use
-`bun run deploy`. The shell script prints each step, builds first, then applies
-migrations and syncs Stripe. `bun run deploy:prepare` runs only the latter two
-steps when the platform already runs the build separately.
+`bun run deploy`. It prepares the database and Stripe catalog before building
+the app.
 
-The Stripe sync finds a configuration with the required features and updates
-it, or creates one if none exists. It enables payment method updates, invoice
-history, and cancellation at the period end; it disables subscription updates
-and pauses. No configuration ID needs to be added to the app environment.
-`bun run stripe:portal-config` can also be run on its own.
+The Billing Portal sync finds a configuration with the required features and
+updates it, or creates one if none exists. It enables payment method updates,
+invoice history, and cancellation at the period end; it disables subscription
+updates and pauses. No configuration ID needs to be added to the app
+environment. `bun run stripe:portal-config` can also be run on its own.
 
 Authenticated customers with a Stripe customer mapping can open the portal from
 `/account` to update payment information, view invoices, or cancel their

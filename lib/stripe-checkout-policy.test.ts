@@ -4,20 +4,9 @@ import {
   getCheckoutCancelUrl,
   getCheckoutSuccessUrl,
   isCheckoutSessionId,
-  parseStripePriceId,
 } from "./stripe-checkout-policy";
 
 describe("Stripe checkout policy", () => {
-  it("parses one configured Price ID", () => {
-    assert.equal(parseStripePriceId(" price_123 "), "price_123");
-  });
-
-  it("rejects an empty, malformed, or multiple Price ID configuration", () => {
-    assert.throws(() => parseStripePriceId(" "));
-    assert.throws(() => parseStripePriceId("not-a-price"));
-    assert.throws(() => parseStripePriceId("price_valid,price_other"));
-  });
-
   it("creates a Stripe success URL with the Checkout Session placeholder", () => {
     assert.equal(
       getCheckoutSuccessUrl("https://auth.outboundendurance.com"),
