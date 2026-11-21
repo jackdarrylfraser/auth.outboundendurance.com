@@ -4,7 +4,7 @@ import { emailOTP } from "better-auth/plugins";
 import { env } from "./env";
 import { db } from "./db";
 import * as schema from "./db/schema";
-import { sendVerificationCode } from "./email";
+import { sendVerificationCode } from "../emails/email";
 
 const baseURL = new URL(env.BETTER_AUTH_URL);
 const isProductionAuthHost =
