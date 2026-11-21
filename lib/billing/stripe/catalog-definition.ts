@@ -10,7 +10,7 @@ export const stripeSubscriptionDefinition = {
     description: "catalog definition for outboundendurance.com subscriptions",
   },
   price: {
-    unitAmount: 0,
+    unitAmount: 25,
     currency: "usd",
     interval: "month" satisfies Stripe.PriceCreateParams.Recurring.Interval,
     intervalCount: 1,
