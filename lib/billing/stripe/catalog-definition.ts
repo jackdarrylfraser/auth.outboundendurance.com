@@ -6,8 +6,9 @@ export const STRIPE_CATALOG_MANAGED_BY = "auth.outboundendurance.com";
 
 export const stripeSubscriptionDefinition = {
   product: {
-    name: "auth.outboundendurance.com - catalog definition",
-    description: "catalog definition for outboundendurance.com subscriptions",
+    name: "Self Guided Exercise, Nutrition & Recovery Course",
+    description:
+      "A self-paced course with practical guidance on exercise, nutrition, and recovery to support your endurance training and help you build sustainable habits.",
   },
   price: {
     unitAmount: 2500, // $25.00
