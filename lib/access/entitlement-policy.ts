@@ -3,6 +3,11 @@ export type SubscriptionEntitlement = {
   cancelAtPeriodEnd: boolean;
 };
 
+export type SubscriptionManagementState = {
+  status: string;
+  currentPeriodEnd: Date;
+};
+
 export type SubscriptionLoader = (
   userId: string,
 ) => Promise<readonly SubscriptionEntitlement[]>;
@@ -29,6 +34,28 @@ export function hasPaidEntitlement(
   return subscriptions.some(
     ({ status }) => status === "active" || status === "trialing",
   );
+}
+
+export function hasManageableSubscription(
+  subscriptions: readonly SubscriptionManagementState[],
+  now: Date,
+): boolean {
+  return subscriptions.some(({ status, currentPeriodEnd }) => {
+    if (
+      status === "active" ||
+      status === "trialing" ||
+      status === "unpaid" ||
+      status === "past_due" ||
+      status === "paused"
+    ) {
+      return true;
+    }
+
+    return (
+      status === "canceled" &&
+      currentPeriodEnd.getTime() > now.getTime()
+    );
+  });
 }
 
 export function createPaidAccessGuard(loadSubscriptions: SubscriptionLoader) {

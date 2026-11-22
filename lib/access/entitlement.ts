@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { stripeCustomer, stripeSubscription } from "@/lib/db/schema";
 import {
   createPaidAccessGuard,
+  hasManageableSubscription,
   isSubscriptionStale,
 } from "@/lib/access/entitlement-policy";
 import { stripe } from "@/lib/billing/stripe/client";
@@ -30,6 +31,24 @@ export const requirePaidAccess = createPaidAccessGuard(async (userId) => {
 
   return subscriptions;
 });
+
+export async function hasManageableStripeSubscription(
+  userId: string,
+): Promise<boolean> {
+  const subscriptions = await db
+    .select({
+      status: stripeSubscription.status,
+      currentPeriodEnd: stripeSubscription.currentPeriodEnd,
+    })
+    .from(stripeSubscription)
+    .innerJoin(
+      stripeCustomer,
+      eq(stripeSubscription.stripeCustomerId, stripeCustomer.stripeCustomerId),
+    )
+    .where(eq(stripeCustomer.userId, userId));
+
+  return hasManageableSubscription(subscriptions, new Date());
+}
 
 async function loadSubscriptions(userId: string) {
   return db

@@ -3,10 +3,12 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
-import { requirePaidAccess } from "@/lib/access/entitlement";
+import {
+  hasManageableStripeSubscription,
+  requirePaidAccess,
+} from "@/lib/access/entitlement";
 import { getAllowedReturnUrl } from "@/lib/auth/return-url";
 import { getServerSession } from "@/lib/auth/session";
-import { getStripeCustomerId } from "@/lib/billing/stripe/client";
 import { withConnection } from "@/lib/next/with-connection";
 import { BillingPortalButton } from "@/app/account/billing-portal-button";
 import { PricingOptions } from "@/app/account/pricing-options";
@@ -60,7 +62,11 @@ const AccountContent = withConnection(async function AccountContent({
     redirect(`${loginUrl.pathname}${loginUrl.search}`);
   }
 
-  const stripeCustomerId = await getStripeCustomerId(session.user.id);
+  const showManageSubscription = await hasManageableStripeSubscription(
+    session.user.id,
+  );
+
+  let hasPaidAccess = true;
 
   try {
     await requirePaidAccess(session.user.id);
@@ -80,53 +86,64 @@ const AccountContent = withConnection(async function AccountContent({
       redirect(returnTo);
     }
 
-    return (
-      <main className="flex flex-1 justify-center px-6 py-16">
+    hasPaidAccess = false;
+  }
+
+  return (
+    <main className="flex flex-1 justify-center px-6 py-16">
+      {hasPaidAccess ? (
+        <section
+          aria-labelledby="account-heading"
+          className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8"
+        >
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">
+            Outbound Endurance
+          </p>
+          <h1
+            className="mt-4 text-3xl font-semibold tracking-tight text-zinc-950"
+            id="account-heading"
+          >
+            Your plan is active
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-zinc-600">
+            You have access to your paid membership. If you cancel, your access
+            continues through the end of your paid period. Manage or cancel your
+            subscription through Stripe.
+          </p>
+          {showManageSubscription ? (
+            <div className="mt-6">
+              <BillingPortalButton />
+            </div>
+          ) : (
+            <div className="mt-6">
+              <PricingOptions returnTo={returnTo} />
+            </div>
+          )}
+        </section>
+      ) : (
         <section className="w-full max-w-5xl">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">
             Outbound Endurance
           </p>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-950">
-            Choose your plan
+            {showManageSubscription
+              ? "Manage your subscription"
+              : "Choose your plan"}
           </h1>
           <p className="mt-3 text-sm leading-6 text-zinc-600">
-            Select a plan below to continue. Checkout is securely hosted by
-            Stripe.
+            {showManageSubscription
+              ? "You already have a subscription. Manage or cancel it through Stripe."
+              : "Select a plan below to continue. Checkout is securely hosted by Stripe."}
           </p>
           <div className="mt-8">
-            <PricingOptions returnTo={returnTo} />
+            {showManageSubscription ? (
+              <BillingPortalButton />
+            ) : (
+              <PricingOptions returnTo={returnTo} />
+            )}
           </div>
         </section>
-      </main>
-    );
-  }
-
-  return (
-    <main className="flex flex-1 justify-center px-6 py-16">
-      <section
-        aria-labelledby="account-heading"
-        className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8"
-      >
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">
-          Outbound Endurance
-        </p>
-        <h1
-          className="mt-4 text-3xl font-semibold tracking-tight text-zinc-950"
-          id="account-heading"
-        >
-          Your plan is active
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-zinc-600">
-          You have access to your paid membership. If you cancel, your access
-          continues through the end of your paid period. Manage or cancel your
-          subscription through Stripe.
-        </p>
-        {stripeCustomerId ? (
-          <div className="mt-6">
-            <BillingPortalButton />
-          </div>
-        ) : null}
-      </section>
+      )}
     </main>
   );
 });

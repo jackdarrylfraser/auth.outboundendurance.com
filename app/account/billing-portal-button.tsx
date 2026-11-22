@@ -46,7 +46,7 @@ export function BillingPortalButton() {
         onClick={openBillingPortal}
         type="button"
       >
-        {isLoading ? "Opening billing..." : "Manage billing"}
+        {isLoading ? "Opening subscription management..." : "Manage subscription"}
       </button>
       {hasError ? (
         <p aria-live="polite" className="mt-2 text-sm text-red-700" role="alert">
