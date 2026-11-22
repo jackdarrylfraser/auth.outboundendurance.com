@@ -6,9 +6,17 @@ export async function getServerSession() {
 }
 
 export async function getSessionFromToken(token: string) {
-  const requestHeaders = new Headers({
-    cookie: `better-auth.session_token=${encodeURIComponent(token)}`,
-  });
+  const { internalAdapter } = await auth.$context;
+  const result = await internalAdapter.findSession(token);
 
-  return auth.api.getSession({ headers: requestHeaders });
+  if (!result) {
+    return null;
+  }
+
+  if (result.session.expiresAt <= new Date()) {
+    await internalAdapter.deleteSession(result.session.token);
+    return null;
+  }
+
+  return result;
 }

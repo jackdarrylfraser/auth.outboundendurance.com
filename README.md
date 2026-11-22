@@ -222,8 +222,10 @@ preview target can use branch-specific Preview variables with `--branch`.
 Production runs update production subscription records.
 
 Consuming apps can request the current user's entitlement with
-`POST /api/access`, sending the Better Auth session token in a JSON body as
-`{"token":"..."}`. The endpoint validates the token and checks paid entitlement;
+`POST /api/access`, sending the raw Better Auth session token (`session.token`)
+in a JSON body as `{"token":"..."}`. Do not send the signed cookie value or a
+cookie header. The endpoint looks up the session by token, rejects expired
+sessions, and checks paid entitlement;
 do not accept a user ID from the browser or cache the response. A valid
 entitled session receives `200` with `{"entitled":true}`, a missing or invalid
 session token receives `401`, and a signed-in user without paid access receives
