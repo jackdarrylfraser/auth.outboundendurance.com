@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import { stripe } from "@/lib/billing/stripe/client";
 import { syncStripeSubscription } from "@/lib/billing/stripe/subscriptions";
 import { db } from "@/lib/db";
+import { getLogger } from "@/lib/logger";
 import { stripeSubscription } from "@/lib/db/schema";
 
 export const maxDuration = 30;
@@ -83,10 +84,10 @@ export async function GET(request: Request) {
         synced += 1;
       } catch (error) {
         failures.push(subscription.id);
-        console.error("Subscription reconciliation failed.", {
-          subscriptionId: subscription.id,
-          error,
-        });
+        getLogger().error(
+          { subscriptionId: subscription.id, err: error },
+          "Subscription reconciliation failed.",
+        );
       }
     }
 

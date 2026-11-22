@@ -12,6 +12,9 @@ export const env = createEnv({
     RESEND_FROM_EMAIL: z.string().trim().min(1),
     TURSO_DATABASE_URL: z.string().trim().min(1),
     TURSO_AUTH_TOKEN: z.string().trim().optional(),
+    LOG_LEVEL: z
+      .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+      .optional(),
   },
   runtimeEnv: {
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
@@ -23,6 +26,7 @@ export const env = createEnv({
     RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
     TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
     TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
+    LOG_LEVEL: process.env.LOG_LEVEL,
   },
   emptyStringAsUndefined: true,
 });

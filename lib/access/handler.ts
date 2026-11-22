@@ -1,6 +1,7 @@
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
+import { getLogger } from "@/lib/logger";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 const accessRequestSchema = z.object({
@@ -22,7 +23,7 @@ type AccessHandlerDependencies = {
 export function createAccessHandler({
   getSession,
   requirePaidAccess,
-  logError = console.error,
+  logError = (message, error) => getLogger().error({ err: error }, message),
 }: AccessHandlerDependencies) {
   return async function POST(request: Request): Promise<Response> {
     let body: unknown;

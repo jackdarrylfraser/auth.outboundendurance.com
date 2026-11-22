@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { stripeEvent } from "@/lib/db/schema";
 import { env } from "@/lib/env";
+import { getLogger } from "@/lib/logger";
 import { stripe } from "@/lib/billing/stripe/client";
 import { processStripeWebhookEvent } from "@/lib/billing/stripe/webhook";
 
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
 
   if (!signature) {
+    getLogger().warn("Stripe webhook rejected: missing signature.");
     return Response.json(
       { error: "Missing Stripe signature." },
       { status: 400, headers: noStoreHeaders },
@@ -32,37 +34,54 @@ export async function POST(request: Request) {
       error instanceof Stripe.errors.StripeSignatureVerificationError ||
       error instanceof SyntaxError
     ) {
+      getLogger().warn(
+        { errorType: error.name },
+        "Stripe webhook rejected: invalid signature or payload.",
+      );
       return Response.json(
         { error: "Invalid Stripe webhook signature or payload." },
         { status: 400, headers: noStoreHeaders },
       );
     }
 
+    getLogger().error(
+      { err: error },
+      "Stripe webhook signature verification failed.",
+    );
     throw error;
   }
+  const eventLog = { eventId: event.id, eventType: event.type };
 
-  await db
-    .insert(stripeEvent)
-    .values({
-      id: event.id,
-      type: event.type,
-      eventCreatedAt: new Date(event.created * 1000),
-      payload: JSON.stringify(event),
-      processedAt: null,
-    })
-    .onConflictDoNothing({ target: stripeEvent.id });
+  try {
+    await db
+      .insert(stripeEvent)
+      .values({
+        id: event.id,
+        type: event.type,
+        eventCreatedAt: new Date(event.created * 1000),
+        payload: JSON.stringify(event),
+        processedAt: null,
+      })
+      .onConflictDoNothing({ target: stripeEvent.id });
 
-  const [storedEvent] = await db
-    .select({ processedAt: stripeEvent.processedAt })
-    .from(stripeEvent)
-    .where(eq(stripeEvent.id, event.id))
-    .limit(1);
+    const [storedEvent] = await db
+      .select({ processedAt: stripeEvent.processedAt })
+      .from(stripeEvent)
+      .where(eq(stripeEvent.id, event.id))
+      .limit(1);
 
-  if (storedEvent?.processedAt) {
-    return Response.json({ received: true }, { headers: noStoreHeaders });
+    if (storedEvent?.processedAt) {
+      return Response.json({ received: true }, { headers: noStoreHeaders });
+    }
+
+    await processStripeWebhookEvent(event);
+  } catch (error) {
+    getLogger().error(
+      { ...eventLog, err: error },
+      "Stripe webhook processing failed.",
+    );
+    throw error;
   }
-
-  await processStripeWebhookEvent(event);
 
   return Response.json({ received: true }, { headers: noStoreHeaders });
 }

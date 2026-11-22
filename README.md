@@ -61,6 +61,8 @@ Use separate auth secrets, Stripe keys, and Turso databases; the build command
 runs migrations and Stripe setup for the selected Vercel environment. These
 files are ignored by Git. Do not commit them or copy Production credentials into
 Preview.
+Set `LOG_LEVEL` in both files before running the environment uploader; use
+`warn` for Production and a more verbose level such as `info` for Preview.
 
 Authenticate the Vercel CLI and link this repository to the intended Vercel
 project, then validate and upload each environment:
@@ -83,6 +85,13 @@ and Preview credentials and databases separate, and use Stripe live keys for
 Production and test keys for Preview. Variables shared with another Vercel
 environment cause the sync to stop rather than delete that other environment's
 configuration.
+
+## Application logging
+
+The application uses Pino for structured server logs. `LOG_LEVEL` accepts
+`fatal`, `error`, `warn`, `info`, `debug`, `trace`, or `silent`; it defaults to
+`warn` in production and `debug` elsewhere. Vercel log levels are preserved by
+routing each level through the corresponding console method.
 
 ## Stripe Checkout
 
