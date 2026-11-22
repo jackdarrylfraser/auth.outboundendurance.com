@@ -11,6 +11,7 @@ import { getAllowedReturnUrl } from "@/lib/auth/return-url";
 import { getServerSession } from "@/lib/auth/session";
 import { withConnection } from "@/lib/next/with-connection";
 import { BillingPortalButton } from "@/app/account/billing-portal-button";
+import { LogoutButton } from "@/app/account/logout-button";
 import { PricingOptions } from "@/app/account/pricing-options";
 
 export const metadata: Metadata = {
@@ -119,6 +120,7 @@ const AccountContent = withConnection(async function AccountContent({
               <PricingOptions returnTo={returnTo} />
             </div>
           )}
+          <LogoutButton />
         </section>
       ) : (
         <section className="w-full max-w-5xl">
@@ -142,6 +144,7 @@ const AccountContent = withConnection(async function AccountContent({
               <PricingOptions returnTo={returnTo} />
             )}
           </div>
+          <LogoutButton />
         </section>
       )}
     </main>
