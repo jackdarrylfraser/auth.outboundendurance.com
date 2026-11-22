@@ -212,15 +212,16 @@ without writing it locally, then sends it as the endpoint's bearer token. A
 preview target can use branch-specific Preview variables with `--branch`.
 Production runs update production subscription records.
 
-Consuming apps can check the current request's entitlement with
-`GET /api/access`. Forward the user's Better Auth session cookie from the
-consuming app's server to this endpoint; do not accept a user ID from the
-browser or cache the response. A valid entitled session receives `200` with
-`{"entitled":true}`, a missing session receives `401`, and a signed-in user
-without paid access receives `403` with `{"entitled":false}`. If session or
-entitlement verification fails, the endpoint returns `503`; consuming apps
-must treat any non-`200` response or network error as no access. All responses
-are marked `Cache-Control: no-store`.
+Consuming apps can request the current user's entitlement with
+`POST /api/access`, sending the Better Auth session token in a JSON body as
+`{"token":"..."}`. The endpoint validates the token and checks paid entitlement;
+do not accept a user ID from the browser or cache the response. A valid
+entitled session receives `200` with `{"entitled":true}`, a missing or invalid
+session token receives `401`, and a signed-in user without paid access receives
+`403` with `{"entitled":false}`. A missing token or invalid request body
+receives `400`. If session or entitlement verification fails, the endpoint
+returns `503`; consuming apps must treat any non-`200` response or network
+error as no access. All responses are marked `Cache-Control: no-store`.
 
 ## Better Auth Secret
 
