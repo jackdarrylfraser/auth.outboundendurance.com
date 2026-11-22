@@ -143,7 +143,7 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
   return (
     <section aria-label="Subscription">
       {priceError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+        <div className="rounded-xl border border-danger-border bg-danger-surface p-5 text-sm text-danger-foreground">
           <p>We couldn&apos;t load the subscription price. Please try again.</p>
           <button
             className="mt-3 font-semibold underline underline-offset-4"
@@ -158,33 +158,33 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
           </button>
         </div>
       ) : plan === null ? (
-        <p aria-live="polite" className="text-sm text-zinc-600" role="status">
+        <p aria-live="polite" className="text-sm text-muted-foreground" role="status">
           Loading subscription price...
         </p>
       ) : (
         <>
           {error ? (
-            <p className="mb-5 text-sm text-red-700" role="alert">
+            <p className="mb-5 text-sm text-danger-foreground" role="alert">
               {error}
             </p>
           ) : null}
-          <article className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-zinc-950">
+          <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-foreground">
               {plan.name}
             </h2>
             {plan.description ? (
-              <p className="mt-2 text-sm leading-6 text-zinc-600">
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 {plan.description}
               </p>
             ) : null}
-            <p className="mt-5 text-2xl font-semibold text-zinc-950">
+            <p className="mt-5 text-2xl font-semibold text-foreground">
               {formatPrice(plan)}
-              <span className="ml-1 text-sm font-normal text-zinc-600">
+              <span className="ml-1 text-sm font-normal text-muted-foreground">
                 {formatInterval(plan)}
               </span>
             </p>
             <button
-              className="mt-5 flex w-full items-center justify-center rounded-lg bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-5 flex w-full items-center justify-center rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isPending}
               onClick={() => void beginCheckout()}
               type="button"

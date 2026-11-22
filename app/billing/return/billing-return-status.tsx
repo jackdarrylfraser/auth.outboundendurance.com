@@ -93,7 +93,7 @@ export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
       <div className="mt-3">
         <p
           aria-live="polite"
-          className="text-sm leading-6 text-zinc-600"
+          className="text-sm leading-6 text-muted-foreground"
           role="status"
         >
           {returnTo
@@ -101,7 +101,7 @@ export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
             : "Your subscription is active. You can continue to your account."}
         </p>
         <a
-          className="mt-6 inline-flex rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+          className="mt-6 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
           href="/account"
         >
           Go to your account
@@ -113,11 +113,11 @@ export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
   if (status === "error") {
     return (
       <div className="mt-3">
-        <p aria-live="polite" className="text-sm leading-6 text-red-700" role="alert">
+        <p aria-live="polite" className="text-sm leading-6 text-danger-foreground" role="alert">
           We couldn&apos;t check your billing status. Please try again.
         </p>
         <button
-          className="mt-4 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-50"
+          className="mt-4 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-background"
           onClick={() => {
             setStatus("checking");
             setAttempt((current) => current + 1);
@@ -132,14 +132,14 @@ export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="mt-3">
-      <p aria-live="polite" className="text-sm leading-6 text-zinc-600" role="status">
+      <p aria-live="polite" className="text-sm leading-6 text-muted-foreground" role="status">
         {status === "checking"
           ? "Your purchase is being confirmed. We’re checking for the subscription update."
           : "Your purchase is still processing. It can take a little while for the update to arrive."}
       </p>
       {status === "processing" ? (
         <button
-          className="mt-4 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-50"
+          className="mt-4 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-background"
           onClick={() => {
             setStatus("checking");
             setAttempt((current) => current + 1);
@@ -150,7 +150,7 @@ export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
         </button>
       ) : null}
       <a
-        className="mt-4 block text-sm font-semibold text-blue-700 underline underline-offset-4"
+        className="mt-4 block text-sm font-semibold text-primary underline underline-offset-4"
         href="/account"
       >
         Return to your account

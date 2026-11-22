@@ -41,7 +41,7 @@ export function BillingPortalButton() {
   return (
     <div>
       <button
-        className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 disabled:cursor-wait disabled:opacity-60"
+        className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-background disabled:cursor-wait disabled:opacity-60"
         disabled={isLoading}
         onClick={openBillingPortal}
         type="button"
@@ -49,7 +49,7 @@ export function BillingPortalButton() {
         {isLoading ? "Opening subscription management..." : "Manage subscription"}
       </button>
       {hasError ? (
-        <p aria-live="polite" className="mt-2 text-sm text-red-700" role="alert">
+        <p aria-live="polite" className="mt-2 text-sm text-danger-foreground" role="alert">
           We couldn&apos;t open billing right now. Please try again.
         </p>
       ) : null}

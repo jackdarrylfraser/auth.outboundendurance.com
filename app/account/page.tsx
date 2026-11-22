@@ -27,7 +27,7 @@ export default function AccountPage({ searchParams }: AccountPageProps) {
     <Suspense
       fallback={
         <main className="flex flex-1 justify-center px-6 py-16">
-          <p aria-live="polite" className="text-sm text-zinc-600" role="status">
+          <p aria-live="polite" className="text-sm text-muted-foreground" role="status">
             Loading your account...
           </p>
         </main>
@@ -94,18 +94,18 @@ const AccountContent = withConnection(async function AccountContent({
       {hasPaidAccess ? (
         <section
           aria-labelledby="account-heading"
-          className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8"
+          className="w-full max-w-2xl rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8"
         >
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
             Outbound Endurance
           </p>
           <h1
-            className="mt-4 text-3xl font-semibold tracking-tight text-zinc-950"
+            className="mt-4 text-3xl font-semibold tracking-tight text-foreground"
             id="account-heading"
           >
             Your plan is active
           </h1>
-          <p className="mt-3 text-sm leading-6 text-zinc-600">
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
             You have access to your paid membership. If you cancel, your access
             continues through the end of your paid period. Manage or cancel your
             subscription through Stripe.
@@ -122,15 +122,15 @@ const AccountContent = withConnection(async function AccountContent({
         </section>
       ) : (
         <section className="w-full max-w-5xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
             Outbound Endurance
           </p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-950">
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground">
             {showManageSubscription
               ? "Manage your subscription"
               : "Choose your plan"}
           </h1>
-          <p className="mt-3 text-sm leading-6 text-zinc-600">
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
             {showManageSubscription
               ? "You already have a subscription. Manage or cancel it through Stripe."
               : "Select a plan below to continue. Checkout is securely hosted by Stripe."}

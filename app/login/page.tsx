@@ -18,13 +18,13 @@ export default function Home({ searchParams }: HomeProps) {
     <main className="flex flex-1 items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
             Outbound Endurance
           </p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-950">
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground">
             Sign in to your account
           </h1>
-          <p className="mt-3 text-sm leading-6 text-zinc-600">
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
             We&apos;ll email you a one-time code. No password needed.
           </p>
         </div>
@@ -32,7 +32,7 @@ export default function Home({ searchParams }: HomeProps) {
           fallback={
             <div
               aria-busy="true"
-              className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-600 shadow-sm"
+              className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground shadow-sm"
               role="status"
             >
               Loading secure sign-in...

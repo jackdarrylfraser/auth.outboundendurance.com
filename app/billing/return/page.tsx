@@ -22,7 +22,7 @@ export default async function BillingReturnPage({
     <Suspense
       fallback={
         <main className="flex flex-1 justify-center px-6 py-16">
-          <p aria-live="polite" className="text-sm text-zinc-600" role="status">
+          <p aria-live="polite" className="text-sm text-muted-foreground" role="status">
             Loading your subscription status...
           </p>
         </main>
@@ -58,13 +58,13 @@ const BillingReturnContent = withConnection(async function BillingReturnContent(
     <main className="flex flex-1 justify-center px-6 py-16">
       <section
         aria-labelledby="billing-return-heading"
-        className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8"
+        className="w-full max-w-2xl rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8"
       >
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
           Outbound Endurance
         </p>
         <h1
-          className="mt-4 text-3xl font-semibold tracking-tight text-zinc-950"
+          className="mt-4 text-3xl font-semibold tracking-tight text-foreground"
           id="billing-return-heading"
         >
           Checking your subscription
