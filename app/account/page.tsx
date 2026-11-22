@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
@@ -36,6 +37,8 @@ export default function AccountPage({ searchParams }: AccountPageProps) {
 }
 
 async function AccountContent({ searchParams }: AccountPageProps) {
+  await connection();
+
   const requestedReturnTo = (await searchParams).returnTo;
   const validatedReturnTo = getAllowedReturnUrl(
     typeof requestedReturnTo === "string" ? requestedReturnTo : undefined,
