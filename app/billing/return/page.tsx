@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
 import { getServerSession } from "@/lib/auth/session";
+import { withConnection } from "@/lib/next/with-connection";
 import { BillingReturnStatus } from "@/app/billing/return/billing-return-status";
 
 export const metadata: Metadata = {
@@ -32,7 +33,7 @@ export default async function BillingReturnPage({
   );
 }
 
-async function BillingReturnContent({
+const BillingReturnContent = withConnection(async function BillingReturnContent({
   searchParams,
 }: BillingReturnPageProps) {
   const { session_id: sessionIdParam } = await searchParams;
@@ -72,4 +73,4 @@ async function BillingReturnContent({
       </section>
     </main>
   );
-}
+});

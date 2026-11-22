@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
@@ -8,6 +7,7 @@ import { requirePaidAccess } from "@/lib/access/entitlement";
 import { getAllowedReturnUrl } from "@/lib/auth/return-url";
 import { getServerSession } from "@/lib/auth/session";
 import { getStripeCustomerId } from "@/lib/billing/stripe/client";
+import { withConnection } from "@/lib/next/with-connection";
 import { BillingPortalButton } from "@/app/account/billing-portal-button";
 import { PricingOptions } from "@/app/account/pricing-options";
 
@@ -36,9 +36,9 @@ export default function AccountPage({ searchParams }: AccountPageProps) {
   );
 }
 
-async function AccountContent({ searchParams }: AccountPageProps) {
-  await connection();
-
+const AccountContent = withConnection(async function AccountContent({
+  searchParams,
+}: AccountPageProps) {
   const requestedReturnTo = (await searchParams).returnTo;
   const validatedReturnTo = getAllowedReturnUrl(
     typeof requestedReturnTo === "string" ? requestedReturnTo : undefined,
@@ -129,4 +129,4 @@ async function AccountContent({ searchParams }: AccountPageProps) {
       </section>
     </main>
   );
-}
+});
