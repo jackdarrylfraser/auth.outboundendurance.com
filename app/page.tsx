@@ -17,23 +17,15 @@ export default function Home() {
           Welcome to Outbound Endurance
         </h1>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
-          Sign in to your account or set up paid access to your membership.
+          Set up paid access to your membership.
         </p>
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+        <div className="mt-8 flex justify-center">
           <Link
-            className="flex items-center justify-center rounded-lg bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
-            href="/login"
+            className="flex items-center justify-center rounded-lg border border-zinc-300 px-5 py-3 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+            href="/account"
           >
-            Sign in
+            Set up paid access
           </Link>
-          {process.env.VERCEL_GIT_COMMIT_REF === "preview" ? (
-            <Link
-              className="flex items-center justify-center rounded-lg border border-zinc-300 px-5 py-3 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
-              href="/account"
-            >
-              Set up paid access
-            </Link>
-          ) : null}
         </div>
       </section>
     </main>
