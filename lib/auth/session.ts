@@ -40,6 +40,7 @@ export async function getServerSession() {
       requestHost: requestHeaders.get("host"),
       forwardedHost: requestHeaders.get("x-forwarded-host"),
       authOrigin: new URL(env.BETTER_AUTH_URL).origin,
+      databaseHost: new URL(env.TURSO_DATABASE_URL).host,
       expectedSessionCookieName,
       secureSessionCookieCount: countCookie(requestHeaders, secureCookieName),
       plainSessionCookieCount: countCookie(requestHeaders, plainCookieName),
