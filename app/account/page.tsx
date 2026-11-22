@@ -49,7 +49,7 @@ async function AccountContent({ searchParams }: AccountPageProps) {
   const session = await getServerSession();
 
   if (!session) {
-    const loginUrl = new URL("/", env.BETTER_AUTH_URL);
+    const loginUrl = new URL("/login", env.BETTER_AUTH_URL);
     loginUrl.searchParams.set(
       "returnTo",
       returnTo ?? new URL("/account", env.BETTER_AUTH_URL).href,

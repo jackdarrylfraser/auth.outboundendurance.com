@@ -48,7 +48,7 @@ async function BillingReturnContent({
   if (!session) {
     const returnUrl = new URL("/billing/return", env.BETTER_AUTH_URL);
     returnUrl.searchParams.set("session_id", sessionId);
-    const loginUrl = new URL("/", env.BETTER_AUTH_URL);
+    const loginUrl = new URL("/login", env.BETTER_AUTH_URL);
     loginUrl.searchParams.set("returnTo", returnUrl.href);
     redirect(`${loginUrl.pathname}${loginUrl.search}`);
   }

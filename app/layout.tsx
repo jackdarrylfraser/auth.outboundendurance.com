@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sign in | Outbound Endurance",
-  description: "Sign in securely with an email verification code.",
+  title: "Outbound Endurance",
+  description: "Secure access and subscription management for Outbound Endurance.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
