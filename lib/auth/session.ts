@@ -11,20 +11,36 @@ function countCookie(headers: Headers, cookieName: string): number {
 
 export async function getServerSession() {
   const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
+  const { headers: responseHeaders, response: session } =
+    await auth.api.getSession({
+      headers: requestHeaders,
+      returnHeaders: true,
+    });
   const secureCookieName = "__Secure-better-auth.session_token";
   const plainCookieName = "better-auth.session_token";
+  const expectedSessionCookieName =
+    new URL(env.BETTER_AUTH_URL).protocol === "https:"
+      ? secureCookieName
+      : plainCookieName;
+  const setCookieHeader = responseHeaders.get("set-cookie") ?? "";
+  const sessionCookieExpired =
+    setCookieHeader.includes(`${expectedSessionCookieName}=`) &&
+    /max-age\s*=\s*0/i.test(setCookieHeader);
+  const sessionLookupResult = session
+    ? "accepted"
+    : sessionCookieExpired
+      ? "valid_cookie_without_active_session"
+      : "cookie_not_accepted";
 
   getLogger().debug(
     {
       sessionFound: Boolean(session),
+      sessionLookupResult,
+      sessionCookieExpired,
       requestHost: requestHeaders.get("host"),
       forwardedHost: requestHeaders.get("x-forwarded-host"),
       authOrigin: new URL(env.BETTER_AUTH_URL).origin,
-      expectedSessionCookieName:
-        new URL(env.BETTER_AUTH_URL).protocol === "https:"
-          ? secureCookieName
-          : plainCookieName,
+      expectedSessionCookieName,
       secureSessionCookieCount: countCookie(requestHeaders, secureCookieName),
       plainSessionCookieCount: countCookie(requestHeaders, plainCookieName),
     },
