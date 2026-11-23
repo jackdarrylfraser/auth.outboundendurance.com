@@ -4,12 +4,12 @@ import { createAccessHandler } from "@/lib/access/handler";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
 
 describe("cross-app access endpoint", () => {
-  it("validates the submitted token and returns an uncached entitlement result", async () => {
+  it("validates the submitted cookie and returns an uncached entitlement result", async () => {
     let checkedUserId: string | undefined;
-    let checkedToken: string | undefined;
+    let checkedCookie: { name: string; value: string } | undefined;
     const handler = createAccessHandler({
-      getSession: async (token) => {
-        checkedToken = token;
+      getSession: async (cookie) => {
+        checkedCookie = cookie;
         return { user: { id: "user-1" } };
       },
       requirePaidAccess: async (userId) => {
@@ -21,18 +21,26 @@ describe("cross-app access endpoint", () => {
       new Request("https://auth.outboundendurance.com/api/access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: "session-token" }),
+        body: JSON.stringify({
+          cookie: {
+            name: "__Secure-better-auth.session_token",
+            value: "signed-session-cookie",
+          },
+        }),
       }),
     );
 
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { entitled: true });
     assert.equal(response.headers.get("Cache-Control"), "no-store");
-    assert.equal(checkedToken, "session-token");
+    assert.deepEqual(checkedCookie, {
+      name: "__Secure-better-auth.session_token",
+      value: "signed-session-cookie",
+    });
     assert.equal(checkedUserId, "user-1");
   });
 
-  it("rejects a request without a token", async () => {
+  it("rejects a request without a cookie", async () => {
     const handler = createAccessHandler({
       getSession: async () => {
         assert.fail("Must not validate a session without a token");
@@ -52,12 +60,12 @@ describe("cross-app access endpoint", () => {
 
     assert.equal(response.status, 400);
     assert.deepEqual(await response.json(), {
-      error: "A session token is required.",
+      error: "A session cookie is required.",
     });
     assert.equal(response.headers.get("Cache-Control"), "no-store");
   });
 
-  it("rejects a token that is not a non-empty string", async () => {
+  it("rejects an invalid session cookie", async () => {
     const handler = createAccessHandler({
       getSession: async () => {
         assert.fail("Must not validate an invalid token");
@@ -71,17 +79,22 @@ describe("cross-app access endpoint", () => {
       new Request("https://auth.outboundendurance.com/api/access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: 123 }),
+        body: JSON.stringify({
+          cookie: {
+            name: "not-a-session-cookie",
+            value: "signed-session-cookie",
+          },
+        }),
       }),
     );
 
     assert.equal(response.status, 400);
     assert.deepEqual(await response.json(), {
-      error: "A session token is required.",
+      error: "A session cookie is required.",
     });
   });
 
-  it("returns an uncached unauthorized response for an invalid token", async () => {
+  it("returns an uncached unauthorized response for an invalid cookie", async () => {
     const handler = createAccessHandler({
       getSession: async () => null,
       requirePaidAccess: async () => {
@@ -93,7 +106,12 @@ describe("cross-app access endpoint", () => {
       new Request("https://auth.outboundendurance.com/api/access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: "invalid-token" }),
+        body: JSON.stringify({
+          cookie: {
+            name: "better-auth.session_token",
+            value: "invalid-cookie",
+          },
+        }),
       }),
     );
 
@@ -114,7 +132,12 @@ describe("cross-app access endpoint", () => {
       new Request("https://auth.outboundendurance.com/api/access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: "session-token" }),
+        body: JSON.stringify({
+          cookie: {
+            name: "better-auth.session_token",
+            value: "signed-session-cookie",
+          },
+        }),
       }),
     );
 
@@ -138,7 +161,12 @@ describe("cross-app access endpoint", () => {
       new Request("https://auth.outboundendurance.com/api/access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: "session-token" }),
+        body: JSON.stringify({
+          cookie: {
+            name: "better-auth.session_token",
+            value: "signed-session-cookie",
+          },
+        }),
       }),
     );
 
@@ -167,7 +195,12 @@ describe("cross-app access endpoint", () => {
       new Request("https://auth.outboundendurance.com/api/access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: "session-token" }),
+        body: JSON.stringify({
+          cookie: {
+            name: "better-auth.session_token",
+            value: "signed-session-cookie",
+          },
+        }),
       }),
     );
 
@@ -199,7 +232,12 @@ describe("cross-app access endpoint", () => {
           new Request("https://auth.outboundendurance.com/api/access", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: "session-token" }),
+            body: JSON.stringify({
+              cookie: {
+                name: "better-auth.session_token",
+                value: "signed-session-cookie",
+              },
+            }),
           }),
         ),
       (error) => {

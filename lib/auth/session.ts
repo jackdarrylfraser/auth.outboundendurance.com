@@ -51,18 +51,11 @@ export async function getServerSession() {
   return session;
 }
 
-export async function getSessionFromToken(token: string) {
-  const { internalAdapter } = await auth.$context;
-  const result = await internalAdapter.findSession(token);
-
-  if (!result) {
-    return null;
-  }
-
-  if (result.session.expiresAt <= new Date()) {
-    await internalAdapter.deleteSession(result.session.token);
-    return null;
-  }
-
-  return result;
+export async function getSessionFromCookie(cookie: {
+  name: string;
+  value: string;
+}) {
+  return auth.api.getSession({
+    headers: new Headers({ cookie: `${cookie.name}=${cookie.value}` }),
+  });
 }

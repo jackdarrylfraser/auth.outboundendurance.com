@@ -222,17 +222,30 @@ preview target can use branch-specific Preview variables with `--branch`.
 Production runs update production subscription records.
 
 Consuming apps can request the current user's entitlement with
-`POST /api/access`, sending the raw Better Auth session token (`session.token`)
-in a JSON body as `{"token":"..."}`. Do not send the signed cookie value or a
-cookie header. The endpoint looks up the session by token, rejects expired
-sessions, and checks paid entitlement;
-do not accept a user ID from the browser or cache the response. A valid
-entitled session receives `200` with `{"entitled":true}`, a missing or invalid
-session token receives `401`, and a signed-in user without paid access receives
-`403` with `{"entitled":false}`. A missing token or invalid request body
-receives `400`. If session or entitlement verification fails, the endpoint
-returns `503`; consuming apps must treat any non-`200` response or network
-error as no access. All responses are marked `Cache-Control: no-store`.
+`POST /api/access`, sending the Better Auth session cookie's name and value in
+the JSON body, for example:
+`{"cookie":{"name":"__Secure-better-auth.session_token","value":"..."}}`.
+For HTTP development, the cookie name is `better-auth.session_token`. Send
+only this session cookie; do not send a user ID or cache the response. The
+endpoint validates the cookie with Better Auth and checks paid entitlement.
+A valid entitled session receives `200` with `{"entitled":true}`, a missing or
+invalid session cookie receives `401`, and a signed-in user without paid access
+receives `403` with `{"entitled":false}`. A missing cookie or invalid request
+body receives `400`. If session or entitlement verification fails, the
+endpoint returns `503`; consuming apps must treat any non-`200` response or
+network error as no access. All responses are marked `Cache-Control: no-store`.
+
+[`example-middleware.ts`](./example-middleware.ts) shows a Next.js Proxy that
+submits this cookie in the POST body, redirects unauthenticated users to
+`https://auth.outboundendurance.com/login`, and sends signed-in users without
+access to `https://auth.outboundendurance.com/account`. It is intended for
+consuming subdomains such as `course.outboundendurance.com`, where the shared
+Better Auth session cookie is available. In a Next.js 16 app, copy it to
+`proxy.ts`, set `AUTH_SERVICE_URL` to the auth service origin (defaults to
+`https://auth.outboundendurance.com`), and change the matcher to cover the
+consuming app's protected routes. The environment variable controls the access
+request and the `/login` and `/account` redirects. Authorization must also be
+enforced in server actions and data-access code, not only in Proxy.
 
 ## Better Auth Secret
 

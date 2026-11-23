@@ -5,7 +5,13 @@ import { getLogger } from "@/lib/logger";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 const accessRequestSchema = z.object({
-  token: z.string().min(1),
+  cookie: z.object({
+    name: z.enum([
+      "better-auth.session_token",
+      "__Secure-better-auth.session_token",
+    ]),
+    value: z.string().min(1).max(4096),
+  }),
 });
 
 type AccessSession = {
@@ -15,7 +21,7 @@ type AccessSession = {
 };
 
 type AccessHandlerDependencies = {
-  getSession: (token: string) => Promise<AccessSession | null>;
+  getSession: (cookie: { name: string; value: string }) => Promise<AccessSession | null>;
   requirePaidAccess: (userId: string) => Promise<void>;
   logError?: (message: string, error: unknown) => void;
 };
@@ -39,13 +45,13 @@ export function createAccessHandler({
     const parsedBody = accessRequestSchema.safeParse(body);
     if (!parsedBody.success) {
       return Response.json(
-        { error: "A session token is required." },
+        { error: "A session cookie is required." },
         { status: 400, headers: noStoreHeaders },
       );
     }
 
     try {
-      const session = await getSession(parsedBody.data.token);
+      const session = await getSession(parsedBody.data.cookie);
 
       if (!session) {
         return Response.json(
