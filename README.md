@@ -255,6 +255,8 @@ Better Auth session cookie is available. In a Next.js 16 app, copy it to
 consuming app's protected routes. The environment variable controls the access
 request and the `/login` and `/subscribe` redirects. Authorization must also be
 enforced in server actions and data-access code, not only in Proxy.
+The machine-readable OpenAPI description is served at
+[`https://auth.outboundendurance.com/openapi.yaml`](https://auth.outboundendurance.com/openapi.yaml).
 
 ## Better Auth Secret
 
