@@ -3,7 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL ?? "https://auth.outboundendurance.com";
 
-function redirectToAuth(request: NextRequest, path: "/login" | "/account") {
+function redirectToAuth(
+  request: NextRequest,
+  path: "/login" | "/subscribe",
+) {
   const destination = new URL(path, AUTH_SERVICE_URL);
   destination.searchParams.set("returnTo", request.url);
   return NextResponse.redirect(destination);
@@ -42,7 +45,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (response.status === 403) {
-    return redirectToAuth(request, "/account");
+    return redirectToAuth(request, "/subscribe");
   }
 
   if (!response.ok) {

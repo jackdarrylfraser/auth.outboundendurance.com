@@ -41,7 +41,7 @@ const BillingReturnContent = withConnection(async function BillingReturnContent(
     typeof sessionIdParam === "string" ? sessionIdParam : null;
 
   if (!sessionId?.startsWith("cs_")) {
-    redirect("/account");
+    redirect("/subscribe");
   }
 
   const session = await getServerSession();

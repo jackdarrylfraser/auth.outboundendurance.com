@@ -28,8 +28,8 @@ Each estimate covers the **total changed lines**, including tests and configurat
 | 7 | Add billing data | 100-180 | Migrations support user-to-customer mappings, subscription state, and processed webhook events. |
 | 8 | Implement entitlement policy | 80-150 | A tested server-side guard permits only `active` and `trialing`; scheduled cancellation preserves access until the status changes. |
 | 9 | Set up Stripe customers | 100-180 | Authenticated users get a mapped Stripe customer and server-created pricing-table Customer Session. |
-| 10 | Display plans | 100-180 | `/account` shows Stripe's pricing table and hosted Checkout to users without an eligible plan, including `past_due` users. |
-| 11 | Add the billing portal | 80-150 | Existing customers can update payment information; eligible users can manage or cancel their plan. Portal cancellation is configured for period end. |
+| 10 | Display plans | 100-180 | `/subscribe` shows the current plan and hosted Checkout to users without an eligible plan, including `past_due` users. |
+| 11 | Add the billing portal | 80-150 | Existing customers manage subscriptions at `/manage`, including updating payment information and cancellation at period end. |
 | 12 | Verify Stripe webhooks | 100-180 | `/api/stripe/webhook` verifies raw-body signatures and records events for idempotent processing. |
 | 13 | Synchronize subscriptions | 120-200 | Checkout and subscription events update state; duplicates, delayed events, ordering, and unlinked purchases are handled. |
 | 14 | Handle billing returns | 80-150 | `/billing/return` shows processing or confirmed state without granting access based on the redirect alone. |

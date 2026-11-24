@@ -98,13 +98,13 @@ export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
         >
           {returnTo
             ? "Your subscription is active. Redirecting to the page you originally requested."
-            : "Your subscription is active. You can continue to your account."}
+            : "Your subscription is active. You can manage your subscription."}
         </p>
         <a
           className="mt-6 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
-          href="/account"
+          href="/manage"
         >
-          Go to your account
+          Manage subscription
         </a>
       </div>
     );
@@ -151,9 +151,9 @@ export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
       ) : null}
       <a
         className="mt-4 block text-sm font-semibold text-primary underline underline-offset-4"
-        href="/account"
+        href="/manage"
       >
-        Return to your account
+        Manage your subscription
       </a>
     </div>
   );

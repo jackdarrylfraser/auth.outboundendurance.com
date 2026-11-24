@@ -20,7 +20,7 @@ describe("Stripe checkout policy", () => {
         "https://auth.outboundendurance.com",
         "https://member.outboundendurance.com/workouts?week=4",
       ),
-      "https://auth.outboundendurance.com/account?returnTo=https%3A%2F%2Fmember.outboundendurance.com%2Fworkouts%3Fweek%3D4",
+      "https://auth.outboundendurance.com/subscribe?returnTo=https%3A%2F%2Fmember.outboundendurance.com%2Fworkouts%3Fweek%3D4",
     );
   });
 

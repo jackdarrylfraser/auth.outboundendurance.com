@@ -110,8 +110,10 @@ for test and live mode. Run it as part of `bun run deploy:prepare`, or manually
 after changing the catalog definition. The pricing and checkout requests read
 this record and do not make Stripe product or price lookup requests.
 
-`/account` requires sign-in. Users without an `active` or `trialing`
-subscription see the current price and one Subscribe button.
+`/subscribe` requires sign-in. Users without an `active` or `trialing`
+subscription see the current price and one Subscribe button. Existing customers
+with a manageable subscription are sent to `/manage`, which opens the Stripe
+Billing Portal. `/account` remains as a compatibility redirect to `/subscribe`.
 `POST /api/billing/checkout-session` creates a Stripe-hosted Checkout Session
 for the synchronized price; the client cannot choose a different price, and
 users with paid access cannot start another subscription. The session stores
@@ -157,9 +159,9 @@ environment. `bun run stripe:portal:configure` can also be run on its own when
 the Billing Portal configuration needs to be created or updated.
 
 Authenticated customers with a Stripe customer mapping can open the portal from
-`/account` to update payment information, view invoices, or cancel their
+`/manage` to update payment information, view invoices, or cancel their
 subscription. Portal sessions find a configuration by its required feature
-settings and return to `/account`; ambiguous matches fail explicitly. A
+settings and return to `/manage`; ambiguous matches fail explicitly. A
 scheduled cancellation remains `active` until the paid period ends, so
 entitlement continues during that period; access ends when Stripe reports the
 subscription as canceled.
@@ -245,13 +247,13 @@ access. All responses are marked `Cache-Control: no-store`.
 [`example-middleware.ts`](./example-middleware.ts) shows a Next.js Proxy that
 submits this cookie in the POST body, redirects unauthenticated users to
 `https://auth.outboundendurance.com/login`, and sends signed-in users without
-access to `https://auth.outboundendurance.com/account`. It is intended for
+access to `https://auth.outboundendurance.com/subscribe`. It is intended for
 consuming subdomains such as `course.outboundendurance.com`, where the shared
 Better Auth session cookie is available. In a Next.js 16 app, copy it to
 `proxy.ts`, set `AUTH_SERVICE_URL` to the auth service origin (defaults to
 `https://auth.outboundendurance.com`), and change the matcher to cover the
 consuming app's protected routes. The environment variable controls the access
-request and the `/login` and `/account` redirects. Authorization must also be
+request and the `/login` and `/subscribe` redirects. Authorization must also be
 enforced in server actions and data-access code, not only in Proxy.
 
 ## Better Auth Secret

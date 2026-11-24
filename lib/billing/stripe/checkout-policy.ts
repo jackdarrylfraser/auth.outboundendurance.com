@@ -13,7 +13,7 @@ export function getCheckoutCancelUrl(
   authUrl: string,
   returnTo: string | null,
 ): string {
-  const cancelUrl = new URL("/account", authUrl);
+  const cancelUrl = new URL("/subscribe", authUrl);
   if (returnTo) {
     cancelUrl.searchParams.set("returnTo", returnTo);
   }

@@ -22,7 +22,7 @@ export default function Home() {
         <div className="mt-8 flex justify-center">
           <Link
             className="flex items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            href="/account"
+            href="/subscribe"
           >
             Set up paid access
           </Link>
