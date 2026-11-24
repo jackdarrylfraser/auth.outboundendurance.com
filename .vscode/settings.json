@@ -1,8 +1,4 @@
 {
-    "files.associations": {
-    "*.tera": "tera-html",
-    "*.html": "tera-html"
-  },
     "editor.rulers": [
         80
     ],
@@ -11,9 +7,6 @@
     "editor.tabSize": 4,
     "editor.detectIndentation": false,
     "html.format.wrapLineLength": 80,
-    "[html]": {
-        "editor.defaultFormatter": "karunamurti.tera",
-    },
     "[markdown]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },

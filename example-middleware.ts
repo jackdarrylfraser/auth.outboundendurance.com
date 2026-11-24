@@ -1,5 +1,7 @@
-import { next } from "@vercel/functions";
-import { env } from "./env";
+import { NextResponse, type NextRequest } from "next/server";
+
+const authServiceUrl =
+  process.env.AUTH_SERVICE_URL ?? "https://auth.outboundendurance.com";
 
 type AccessLevel = "authenticated" | "paid";
 
@@ -18,13 +20,16 @@ function getRequiredAccess(pathname: string): AccessLevel {
   return matchingRules[0]?.access ?? "paid";
 }
 
-function redirectToAuth(request: Request, path: "/login" | "/subscribe") {
-  const destination = new URL(path, env.AUTH_SERVICE_URL);
+function redirectToAuth(
+  request: NextRequest,
+  path: "/login" | "/subscribe",
+) {
+  const destination = new URL(path, authServiceUrl);
   destination.searchParams.set("returnTo", request.url);
   return Response.redirect(destination);
 }
 
-function denyAccess(request: Request, access: AccessLevel) {
+function denyAccess(request: NextRequest, access: AccessLevel) {
   if (access === "paid") {
     return redirectToAuth(request, "/subscribe");
   }
@@ -50,7 +55,7 @@ function getSessionCookie(request: Request) {
   return undefined;
 }
 
-export default async function proxy(request: Request) {
+export default async function proxy(request: NextRequest) {
   const requiredAccess = getRequiredAccess(new URL(request.url).pathname);
   const sessionCookie = getSessionCookie(request);
 
@@ -60,7 +65,7 @@ export default async function proxy(request: Request) {
 
   let response: Response;
   try {
-    response = await fetch(new URL("/api/access", env.AUTH_SERVICE_URL), {
+    response = await fetch(new URL("/api/access", authServiceUrl), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -116,7 +121,7 @@ export default async function proxy(request: Request) {
       return denyAccess(request, requiredAccess);
     }
 
-    return next();
+    return NextResponse.next();
   }
 
   return new Response("Unable to verify access.", { status: 503 });

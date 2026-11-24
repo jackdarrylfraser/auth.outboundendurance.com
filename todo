@@ -1,8 +1,5 @@
-test the code on localhost
-- if it looks good then continue with step 17 and write tests
+create a next js site that renders markdown
 
-modify the style to match with a good style
+the main lead magnet should be a calculator that shows people hand size portions without requiring people to signin to complete the calculator but requires signin to receive the result.
 
-consider using zola or the markdown engine I built to render the text. 
-- I kinda like the one I built because it's more flexible and I can build a translation step into the processing.
-- whereas for more simple applications the structure and confinement of zola actaully feels like a helpful limit to like master it.
+ads to the portion size calculator, email sequence explaining techniques that can help turn your recommended portions into actual foods that you eat etc.
