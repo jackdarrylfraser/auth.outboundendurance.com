@@ -12,6 +12,7 @@ const accessRequestSchema = z.object({
     ]),
     value: z.string().min(1).max(4096),
   }),
+  access: z.enum(["authenticated", "paid"]).default("paid"),
 });
 
 type AccessSession = {
@@ -55,19 +56,29 @@ export function createAccessHandler({
 
       if (!session) {
         return Response.json(
-          { error: "Unauthorized" },
+          { accessType: parsedBody.data.access, hasAccess: false },
           { status: 401, headers: noStoreHeaders },
         );
       }
 
+      if (parsedBody.data.access === "authenticated") {
+        return Response.json(
+          { accessType: "authenticated", hasAccess: true },
+          { headers: noStoreHeaders },
+        );
+      }
+
       await requirePaidAccess(session.user.id);
-      return Response.json({ entitled: true }, { headers: noStoreHeaders });
+      return Response.json(
+        { accessType: "paid", hasAccess: true },
+        { headers: noStoreHeaders },
+      );
     } catch (error) {
       unstable_rethrow(error);
 
       if (error instanceof PaidAccessRequiredError) {
         return Response.json(
-          { entitled: false },
+          { accessType: "paid", hasAccess: false },
           { status: 403, headers: noStoreHeaders },
         );
       }

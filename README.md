@@ -221,19 +221,26 @@ without writing it locally, then sends it as the endpoint's bearer token. A
 preview target can use branch-specific Preview variables with `--branch`.
 Production runs update production subscription records.
 
-Consuming apps can request the current user's entitlement with
-`POST /api/access`, sending the Better Auth session cookie's name and value in
-the JSON body, for example:
-`{"cookie":{"name":"__Secure-better-auth.session_token","value":"..."}}`.
-For HTTP development, the cookie name is `better-auth.session_token`. Send
-only this session cookie; do not send a user ID or cache the response. The
-endpoint validates the cookie with Better Auth and checks paid entitlement.
-A valid entitled session receives `200` with `{"entitled":true}`, a missing or
-invalid session cookie receives `401`, and a signed-in user without paid access
-receives `403` with `{"entitled":false}`. A missing cookie or invalid request
-body receives `400`. If session or entitlement verification fails, the
-endpoint returns `503`; consuming apps must treat any non-`200` response or
-network error as no access. All responses are marked `Cache-Control: no-store`.
+Consuming apps can verify a session or paid entitlement with `POST /api/access`,
+sending the Better Auth session cookie's name and value in the JSON body. For
+login-only content, send `"access":"authenticated"`:
+`{"access":"authenticated","cookie":{"name":"__Secure-better-auth.session_token","value":"..."}}`.
+A valid session receives `200` with
+`{"accessType":"authenticated","hasAccess":true}` without checking subscription
+status. For paid content, send `"access":"paid"`:
+`{"access":"paid","cookie":{"name":"__Secure-better-auth.session_token","value":"..."}}`.
+A valid entitled session receives `200` with
+`{"accessType":"paid","hasAccess":true}`; a signed-in user without paid access
+receives `403` with `{"accessType":"paid","hasAccess":false}`. Both access
+modes use this same result shape with their corresponding `accessType`; an
+invalid session receives `401` with the requested `accessType` and
+`"hasAccess":false`. Omitting `access` defaults to `"paid"` for backwards
+compatibility. For HTTP development, the cookie name is
+`better-auth.session_token`. Send only this session cookie; do not send a user
+ID or cache the response. A missing cookie or invalid request body receives
+`400`. If session or entitlement verification fails, the endpoint returns
+`503`; consuming apps must treat non-`200` responses or network errors as no
+access. All responses are marked `Cache-Control: no-store`.
 
 [`example-middleware.ts`](./example-middleware.ts) shows a Next.js Proxy that
 submits this cookie in the POST body, redirects unauthenticated users to

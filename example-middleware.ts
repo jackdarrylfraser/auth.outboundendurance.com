@@ -24,6 +24,7 @@ export async function proxy(request: NextRequest) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        access: "paid",
         cookie: {
           name: sessionCookie.name,
           value: sessionCookie.value,
@@ -59,8 +60,10 @@ export async function proxy(request: NextRequest) {
   if (
     typeof result === "object" &&
     result !== null &&
-    "entitled" in result &&
-    result.entitled === true
+    "accessType" in result &&
+    result.accessType === "paid" &&
+    "hasAccess" in result &&
+    result.hasAccess === true
   ) {
     return NextResponse.next();
   }

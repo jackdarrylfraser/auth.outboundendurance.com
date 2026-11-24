@@ -31,13 +31,54 @@ describe("cross-app access endpoint", () => {
     );
 
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { entitled: true });
+    assert.deepEqual(await response.json(), {
+      accessType: "paid",
+      hasAccess: true,
+    });
     assert.equal(response.headers.get("Cache-Control"), "no-store");
     assert.deepEqual(checkedCookie, {
       name: "__Secure-better-auth.session_token",
       value: "signed-session-cookie",
     });
     assert.equal(checkedUserId, "user-1");
+  });
+
+  it("checks authentication without requiring paid access when requested", async () => {
+    let checkedCookie: { name: string; value: string } | undefined;
+    const handler = createAccessHandler({
+      getSession: async (cookie) => {
+        checkedCookie = cookie;
+        return { user: { id: "user-1" } };
+      },
+      requirePaidAccess: async () => {
+        assert.fail("Must not check paid access for an authentication-only request");
+      },
+    });
+
+    const response = await handler(
+      new Request("https://auth.outboundendurance.com/api/access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access: "authenticated",
+          cookie: {
+            name: "better-auth.session_token",
+            value: "signed-session-cookie",
+          },
+        }),
+      }),
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      accessType: "authenticated",
+      hasAccess: true,
+    });
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+    assert.deepEqual(checkedCookie, {
+      name: "better-auth.session_token",
+      value: "signed-session-cookie",
+    });
   });
 
   it("rejects a request without a cookie", async () => {
@@ -116,7 +157,40 @@ describe("cross-app access endpoint", () => {
     );
 
     assert.equal(response.status, 401);
-    assert.deepEqual(await response.json(), { error: "Unauthorized" });
+    assert.deepEqual(await response.json(), {
+      accessType: "paid",
+      hasAccess: false,
+    });
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+  });
+
+  it("returns the requested access type with hasAccess false for an invalid authentication check", async () => {
+    const handler = createAccessHandler({
+      getSession: async () => null,
+      requirePaidAccess: async () => {
+        assert.fail("Must not check paid access without a session");
+      },
+    });
+
+    const response = await handler(
+      new Request("https://auth.outboundendurance.com/api/access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access: "authenticated",
+          cookie: {
+            name: "better-auth.session_token",
+            value: "invalid-cookie",
+          },
+        }),
+      }),
+    );
+
+    assert.equal(response.status, 401);
+    assert.deepEqual(await response.json(), {
+      accessType: "authenticated",
+      hasAccess: false,
+    });
     assert.equal(response.headers.get("Cache-Control"), "no-store");
   });
 
@@ -142,7 +216,10 @@ describe("cross-app access endpoint", () => {
     );
 
     assert.equal(response.status, 403);
-    assert.deepEqual(await response.json(), { entitled: false });
+    assert.deepEqual(await response.json(), {
+      accessType: "paid",
+      hasAccess: false,
+    });
     assert.equal(response.headers.get("Cache-Control"), "no-store");
   });
 
