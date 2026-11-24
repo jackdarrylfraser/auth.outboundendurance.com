@@ -1,0 +1,213 @@
+openapi: 3.1.0
+info:
+  title: Outbound Endurance Access API
+  version: 1.0.0
+  description: >-
+    Checks whether a Better Auth session has authenticated or paid access.
+    Call this endpoint server-to-server. Forward the current user's session
+    cookie from the incoming request; do not expose the cookie value to
+    client-side code or log it.
+servers:
+  - url: https://account.outboundendurance.com
+    description: Production auth service
+  - url: https://auth-preview.outboundendurance.com
+    description: Vercel preview deployment; replace the example host with the deployment's hostname.
+paths:
+  /api/access:
+    post:
+      operationId: checkAccess
+      summary: Check session or paid access
+      description: >-
+        Validates the supplied Better Auth session cookie. The `access` field
+        defaults to `paid` when omitted. Responses include
+        `Cache-Control: no-store`; callers must not cache the result.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cookie
+              properties:
+                access:
+                  type: string
+                  enum:
+                    - authenticated
+                    - paid
+                  default: paid
+                  description: >-
+                    Use `authenticated` to check only that the session is
+                    valid, or `paid` to also require an eligible subscription.
+                cookie:
+                  type: object
+                  required:
+                    - name
+                    - value
+                  properties:
+                    name:
+                      type: string
+                      enum:
+                        - better-auth.session_token
+                        - __Secure-better-auth.session_token
+                      description: Name of the session cookie from the incoming request.
+                    value:
+                      type: string
+                      minLength: 1
+                      maxLength: 4096
+                      writeOnly: true
+                      description: Session cookie value from the incoming request.
+            examples:
+              paidAccess:
+                summary: Check paid access
+                value:
+                  access: paid
+                  cookie:
+                    name: __Secure-better-auth.session_token
+                    value: "<session-cookie-value>"
+              authenticated:
+                summary: Check sign-in only
+                value:
+                  access: authenticated
+                  cookie:
+                    name: __Secure-better-auth.session_token
+                    value: "<session-cookie-value>"
+      responses:
+        "200":
+          description: The session is valid and the requested access is granted.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/AuthenticatedAccessGranted"
+                  - $ref: "#/components/schemas/PaidAccessGranted"
+              examples:
+                authenticated:
+                  value:
+                    accessType: authenticated
+                    hasAccess: true
+                paid:
+                  value:
+                    accessType: paid
+                    hasAccess: true
+        "400":
+          description: The JSON body or session cookie details are invalid.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: A session cookie is required.
+        "401":
+          description: The session cookie is invalid or expired.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessDenied"
+              examples:
+                paid:
+                  value:
+                    accessType: paid
+                    hasAccess: false
+                authenticated:
+                  value:
+                    accessType: authenticated
+                    hasAccess: false
+        "403":
+          description: The session is valid but does not have paid access.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaidAccessDenied"
+              example:
+                accessType: paid
+                hasAccess: false
+        "503":
+          description: The access check could not be completed; treat the request as denied.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Unable to verify access.
+components:
+  headers:
+    NoStore:
+      schema:
+        type: string
+        const: no-store
+  schemas:
+    AuthenticatedAccessGranted:
+      type: object
+      required:
+        - accessType
+        - hasAccess
+      properties:
+        accessType:
+          type: string
+          const: authenticated
+        hasAccess:
+          type: boolean
+          const: true
+    PaidAccessGranted:
+      type: object
+      required:
+        - accessType
+        - hasAccess
+      properties:
+        accessType:
+          type: string
+          const: paid
+        hasAccess:
+          type: boolean
+          const: true
+    AccessDenied:
+      type: object
+      required:
+        - accessType
+        - hasAccess
+      properties:
+        accessType:
+          type: string
+          enum:
+            - authenticated
+            - paid
+        hasAccess:
+          type: boolean
+          const: false
+    PaidAccessDenied:
+      type: object
+      required:
+        - accessType
+        - hasAccess
+      properties:
+        accessType:
+          type: string
+          const: paid
+        hasAccess:
+          type: boolean
+          const: false
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
