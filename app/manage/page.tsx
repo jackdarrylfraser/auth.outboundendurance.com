@@ -33,10 +33,10 @@ const ManageContent = withConnection(async function ManageContent() {
   const session = await getServerSession();
 
   if (!session) {
-    const loginUrl = new URL("/login", env.BETTER_AUTH_URL);
+    const loginUrl = new URL("/login", env.BASE_URL);
     loginUrl.searchParams.set(
       "returnTo",
-      new URL("/manage", env.BETTER_AUTH_URL).href,
+      new URL("/manage", env.BASE_URL).href,
     );
     redirect(`${loginUrl.pathname}${loginUrl.search}`);
   }

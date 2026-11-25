@@ -4,9 +4,9 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     BETTER_AUTH_SECRET: z.string().min(32),
-    BETTER_AUTH_URL: z.string().url(),
+    BASE_URL: z.string().url(),
     STRIPE_SECRET_KEY: z.string().trim().min(1),
-    STRIPE_WEBHOOK_SECRET: z.string().trim().min(1),
+    STRIPE_WEBHOOK_SECRET: z.string().trim().min(1).optional(),
     CRON_SECRET: z.string().trim().min(1).optional(),
     RESEND_API_KEY: z.string().trim().min(1),
     RESEND_FROM_EMAIL: z.string().trim().min(1),
@@ -21,7 +21,7 @@ export const env = createEnv({
   },
   runtimeEnv: {
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
-    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    BASE_URL: process.env.BASE_URL,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     CRON_SECRET: process.env.CRON_SECRET,

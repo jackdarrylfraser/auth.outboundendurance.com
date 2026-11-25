@@ -46,7 +46,7 @@ const SubscribeContent = withConnection(async function SubscribeContent({
   const requestedReturnTo = (await searchParams).returnTo;
   const validatedReturnTo = getAllowedReturnUrl(
     typeof requestedReturnTo === "string" ? requestedReturnTo : undefined,
-    env.BETTER_AUTH_URL,
+    env.BASE_URL,
   );
   const returnTo =
     validatedReturnTo &&
@@ -58,10 +58,10 @@ const SubscribeContent = withConnection(async function SubscribeContent({
   const session = await getServerSession();
 
   if (!session) {
-    const loginUrl = new URL("/login", env.BETTER_AUTH_URL);
+    const loginUrl = new URL("/login", env.BASE_URL);
     loginUrl.searchParams.set(
       "returnTo",
-      returnTo ?? new URL("/subscribe", env.BETTER_AUTH_URL).href,
+      returnTo ?? new URL("/subscribe", env.BASE_URL).href,
     );
     redirect(`${loginUrl.pathname}${loginUrl.search}`);
   }
@@ -86,7 +86,7 @@ const SubscribeContent = withConnection(async function SubscribeContent({
     if (
       returnTo &&
       new URL(returnTo).pathname === "/billing/return" &&
-      new URL(returnTo).origin === new URL(env.BETTER_AUTH_URL).origin
+      new URL(returnTo).origin === new URL(env.BASE_URL).origin
     ) {
       redirect(returnTo);
     }

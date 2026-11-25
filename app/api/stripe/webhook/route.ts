@@ -20,6 +20,15 @@ export async function POST(request: Request) {
     );
   }
 
+  const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    getLogger().error("Stripe webhook secret is not configured.");
+    return Response.json(
+      { error: "Stripe webhook is not configured." },
+      { status: 500, headers: noStoreHeaders },
+    );
+  }
+
   const rawBody = await request.text();
   let event: Stripe.Event;
 
@@ -27,7 +36,7 @@ export async function POST(request: Request) {
     event = await stripe.webhooks.constructEventAsync(
       rawBody,
       signature,
-      env.STRIPE_WEBHOOK_SECRET,
+      webhookSecret,
     );
   } catch (error) {
     if (

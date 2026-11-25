@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { HTTPClient, Vercel } from "@vercel/sdk";
 import { describe, it } from "node:test";
+import Stripe from "stripe";
+import { STRIPE_WEBHOOK_EVENTS } from "../lib/billing/stripe/webhook-policy";
 
 for (const [key, value] of Object.entries({
   BETTER_AUTH_SECRET: "test-secret-value-that-is-at-least-thirty-two-characters",
-  BETTER_AUTH_URL: "https://example.test",
-  STRIPE_SECRET_KEY: "test-stripe-secret",
-  STRIPE_WEBHOOK_SECRET: "test-stripe-webhook-secret",
+  BASE_URL: "https://example.test",
+  STRIPE_SECRET_KEY: "sk_test_example",
   RESEND_API_KEY: "test-resend-key",
   RESEND_FROM_EMAIL: "test@example.test",
   TURSO_DATABASE_URL: "file:test.db",
@@ -14,7 +15,14 @@ for (const [key, value] of Object.entries({
   process.env[key] ??= value;
 }
 
-const { compareEnvFiles, syncEnvironment } =
+const {
+  assertStripeEnvironmentMode,
+  compareEnvFiles,
+  getStripeWebhookUrl,
+  listStripeWebhooksAtUrl,
+  replaceStripeWebhook,
+  syncEnvironment,
+} =
   await import("./vercel-env-upload");
 
 const credentials = {
@@ -90,7 +98,141 @@ function environmentList(
   };
 }
 
+function createStripeClient(
+  existing: { id: string; url: string; livemode: boolean }[],
+  livemode: boolean,
+) {
+  const calls: { method: string; id?: string; params?: unknown }[] = [];
+  const stripe = {
+    webhookEndpoints: {
+      async *list(_params: Stripe.WebhookEndpointListParams) {
+        assert.equal(_params.limit, 100);
+        yield* existing;
+      },
+      async del(id: string) {
+        calls.push({ method: "DELETE", id });
+        return { deleted: true };
+      },
+      async create(params: Stripe.WebhookEndpointCreateParams) {
+        calls.push({ method: "POST", params });
+        return {
+          id: "we_new",
+          url: params.url,
+          livemode,
+          secret: "whsec_fresh",
+        };
+      },
+    },
+  };
+
+  return { stripe, calls };
+}
+
 describe("Vercel env uploader", () => {
+  it("accepts BASE_URL without requiring a local webhook secret", () => {
+    assert.deepEqual(
+      compareEnvFiles(
+        "BETTER_AUTH_SECRET=\nBASE_URL=\nSTRIPE_SECRET_KEY=\n",
+        "BETTER_AUTH_SECRET=long-secret\nBASE_URL=https://example.test\nSTRIPE_SECRET_KEY=sk_test_123\n",
+      ),
+      { missing: [], extra: [], empty: [] },
+    );
+  });
+
+  it("treats a legacy webhook secret in an env file as extra", () => {
+    assert.deepEqual(
+      compareEnvFiles(
+        "BASE_URL=\nSTRIPE_SECRET_KEY=\n",
+        "BASE_URL=https://example.test\nSTRIPE_SECRET_KEY=sk_test_123\nSTRIPE_WEBHOOK_SECRET=whsec_old\n",
+      ),
+      { missing: [], extra: ["STRIPE_WEBHOOK_SECRET"], empty: [] },
+    );
+  });
+
+  it("derives the exact Stripe webhook URL from BASE_URL", () => {
+    assert.equal(
+      getStripeWebhookUrl("https://example.test/app"),
+      "https://example.test/api/stripe/webhook",
+    );
+    assert.throws(
+      () => getStripeWebhookUrl("http://example.test"),
+      /BASE_URL must use HTTPS/,
+    );
+  });
+
+  it("requires the Stripe key mode to match the Vercel environment", () => {
+    assert.doesNotThrow(() => assertStripeEnvironmentMode("preview", false));
+    assert.doesNotThrow(() => assertStripeEnvironmentMode("production", true));
+    assert.throws(
+      () => assertStripeEnvironmentMode("production", false),
+      /requires a Stripe live key/,
+    );
+  });
+
+  it("finds every endpoint with an exact URL match only", async () => {
+    const url = "https://example.test/api/stripe/webhook";
+    const { stripe } = createStripeClient(
+      [
+        { id: "we_exact", url, livemode: true },
+        { id: "we_other_path", url: `${url}/other`, livemode: true },
+        { id: "we_other_host", url: "https://other.test/api/stripe/webhook", livemode: true },
+      ],
+      true,
+    );
+
+    assert.deepEqual(await listStripeWebhooksAtUrl(stripe, url), [
+      { id: "we_exact", url, livemode: true },
+    ]);
+  });
+
+  it("deletes all exact URL matches and creates one tagged endpoint", async () => {
+    const url = "https://example.test/api/stripe/webhook";
+    const { stripe, calls } = createStripeClient(
+      [
+        { id: "we_old_1", url, livemode: true },
+        { id: "we_old_2", url, livemode: true },
+        { id: "we_other", url: "https://example.test/other", livemode: true },
+      ],
+      true,
+    );
+
+    assert.deepEqual(
+      await replaceStripeWebhook(stripe, "production", url, true),
+      { endpointId: "we_new", secret: "whsec_fresh", replacedCount: 2 },
+    );
+    assert.deepEqual(
+      calls.map(({ method, id }) => ({ method, id })),
+      [
+        { method: "DELETE", id: "we_old_1" },
+        { method: "DELETE", id: "we_old_2" },
+        { method: "POST", id: undefined },
+      ],
+    );
+    assert.deepEqual(calls[2].params, {
+      url,
+      enabled_events: STRIPE_WEBHOOK_EVENTS,
+      metadata: {
+        managed_by: "auth.outboundendurance.com",
+        purpose: "billing-webhook",
+        environment: "production",
+      },
+    });
+  });
+
+  it("refuses to delete endpoints from the wrong Stripe mode", async () => {
+    const url = "https://example.test/api/stripe/webhook";
+    const { stripe, calls } = createStripeClient(
+      [{ id: "we_wrong_mode", url, livemode: false }],
+      true,
+    );
+
+    await assert.rejects(
+      replaceStripeWebhook(stripe, "production", url, true),
+      /wrong mode/,
+    );
+    assert.deepEqual(calls, []);
+  });
+
   it("accepts exactly the populated fields from the example", () => {
     assert.deepEqual(
       compareEnvFiles(
@@ -187,6 +329,7 @@ describe("Vercel env uploader", () => {
         "preview",
         {
           DATABASE_URL: "secret-value",
+          STRIPE_WEBHOOK_SECRET: "whsec_fresh",
           VERCEL_TOKEN: "must-not-upload",
           VERCEL_PROJECT_ID: "prj_test",
           VERCEL_TEAM_ID: "team_test",
@@ -195,12 +338,13 @@ describe("Vercel env uploader", () => {
         false,
         client,
       ),
-      { existingCount: 2, variableCount: 1 },
+      { existingCount: 2, variableCount: 2 },
     );
     assert.deepEqual(calls.map(({ method }) => method), [
       "GET",
       "DELETE",
       "DELETE",
+      "POST",
       "POST",
     ]);
     assert.ok(calls[1].url.pathname.endsWith("/env/env_branch"));
@@ -208,6 +352,12 @@ describe("Vercel env uploader", () => {
     assert.deepEqual(JSON.parse(calls[3].body ?? ""), {
       key: "DATABASE_URL",
       value: "secret-value",
+      type: "encrypted",
+      target: ["preview"],
+    });
+    assert.deepEqual(JSON.parse(calls[4].body ?? ""), {
+      key: "STRIPE_WEBHOOK_SECRET",
+      value: "whsec_fresh",
       type: "encrypted",
       target: ["preview"],
     });

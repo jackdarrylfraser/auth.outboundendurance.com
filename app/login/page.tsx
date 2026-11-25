@@ -50,7 +50,7 @@ async function SignInContent({ searchParams }: HomeProps) {
   const { returnTo } = await searchParams;
   const returnUrl = getAllowedReturnUrl(
     typeof returnTo === "string" ? returnTo : undefined,
-    env.BETTER_AUTH_URL,
+    env.BASE_URL,
   );
 
   return <SignInForm returnUrl={returnUrl} />;

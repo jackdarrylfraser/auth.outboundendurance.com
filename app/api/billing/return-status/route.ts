@@ -74,7 +74,7 @@ export async function POST(request: Request) {
         status: "confirmed",
         returnTo: getAllowedReturnUrl(
           checkoutSession.metadata?.returnTo,
-          env.BETTER_AUTH_URL,
+          env.BASE_URL,
         ),
       },
       { headers: noStoreHeaders },

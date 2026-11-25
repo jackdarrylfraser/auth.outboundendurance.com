@@ -72,7 +72,7 @@ export async function POST(request: Request) {
 
   const returnTo = getAllowedReturnUrl(
     typeof requestedReturnTo === "string" ? requestedReturnTo : undefined,
-    env.BETTER_AUTH_URL,
+    env.BASE_URL,
   );
   if (requestedReturnTo && !returnTo) {
     return Response.json(
@@ -97,8 +97,8 @@ export async function POST(request: Request) {
     mode: "subscription",
     customer: customerId,
     line_items: [{ price: plan.priceId, quantity: 1 }],
-    success_url: getCheckoutSuccessUrl(env.BETTER_AUTH_URL),
-    cancel_url: getCheckoutCancelUrl(env.BETTER_AUTH_URL, returnTo),
+    success_url: getCheckoutSuccessUrl(env.BASE_URL),
+    cancel_url: getCheckoutCancelUrl(env.BASE_URL, returnTo),
     metadata: {
       userId: session.user.id,
       ...(returnTo ? { returnTo } : {}),

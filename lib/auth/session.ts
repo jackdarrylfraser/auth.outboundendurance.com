@@ -19,7 +19,7 @@ export async function getServerSession() {
   const secureCookieName = "__Secure-better-auth.session_token";
   const plainCookieName = "better-auth.session_token";
   const expectedSessionCookieName =
-    new URL(env.BETTER_AUTH_URL).protocol === "https:"
+    new URL(env.BASE_URL).protocol === "https:"
       ? secureCookieName
       : plainCookieName;
   const setCookieHeader = responseHeaders.get("set-cookie") ?? "";
@@ -39,7 +39,7 @@ export async function getServerSession() {
       sessionCookieExpired,
       requestHost: requestHeaders.get("host"),
       forwardedHost: requestHeaders.get("x-forwarded-host"),
-      authOrigin: new URL(env.BETTER_AUTH_URL).origin,
+      authOrigin: new URL(env.BASE_URL).origin,
       databaseHost: new URL(env.TURSO_DATABASE_URL).host,
       expectedSessionCookieName,
       secureSessionCookieCount: countCookie(requestHeaders, secureCookieName),

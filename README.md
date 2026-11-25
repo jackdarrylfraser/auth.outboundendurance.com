@@ -2,7 +2,7 @@
 
 ## Authentication setup
 
-Better Auth uses `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL`. Set a unique random
+Better Auth uses `BETTER_AUTH_SECRET` and `BASE_URL`. Set a unique random
 secret of at least 32 characters and the public base URL of this service in an
 ignored environment file or the deployment platform's secret settings. The
 local URL is `http://localhost:3000`.
@@ -71,8 +71,7 @@ remain empty for a personal project. These uploader settings are listed in
 must have permission to manage environment variables for the project. Find the
 project and team IDs in the Vercel project settings. Then validate and upload
 each environment. The sync commands load the selected file into `process.env`
-using Bun's `--env-file` flag, and the uploader reads the validated values from
-`lib/env.ts`:
+using Bun's `--env-file` flag, and the uploader validates its own inputs:
 
 ```sh
 bun run sync:env:preview -- --check
@@ -83,18 +82,25 @@ bun run sync:env:prod
 
 The uploader compares the selected file and `.env.example` with Node's built-in
 `.env` parser; it fails before making changes unless the files have exactly the
-same variable names and all application values are non-empty. Upload values
-and Vercel credentials come from the validated `env` export in `lib/env.ts`. It
-uses Vercel's official `@vercel/sdk` to
-list the selected environment's variables, remove them by ID, and recreate the
-file's variables as encrypted values. Variable values and the access token are
-not printed. `--check` performs validation and API reads without making
-changes. The uploader also stops if Vercel reports hidden production variables
-or a paginated list, rather than risk syncing an incomplete set. Keep Production
-and Preview credentials and databases separate, and use Stripe live keys for
-Production and test keys for Preview. Variables shared with another Vercel
-environment cause the sync to stop rather than delete that other environment's
-configuration.
+same variable names and all application values are non-empty. It uses Vercel's
+official `@vercel/sdk` to list the selected environment's variables, remove
+them by ID, and recreate the file's variables as encrypted values. Variable
+values and the access token are not printed. `--check` performs validation and
+API reads without making changes. The uploader also stops if Vercel reports
+hidden production variables or a paginated list, rather than risk syncing an
+incomplete set. Keep Production and Preview credentials and databases
+separate, and use Stripe live keys for Production and test keys for Preview.
+Variables shared with another Vercel environment cause the sync to stop rather
+than delete that other environment's configuration.
+
+Each non-check env sync also recreates the Stripe webhook for the selected
+environment. It deletes every endpoint in that Stripe mode whose URL exactly
+matches `BASE_URL` plus `/api/stripe/webhook`, then creates a fresh endpoint
+with the application's required events. The generated signing secret is added
+to the Vercel environment as an encrypted `STRIPE_WEBHOOK_SECRET`; it is never
+read from or written to an env file. `--check` only reports matching endpoints
+and does not delete or create them. Syncing Vercel variables does not trigger a
+deployment; the next normal deployment uses the newly uploaded secret.
 
 ## Application logging
 
@@ -178,16 +184,18 @@ subscription as canceled.
 
 ## Stripe webhooks
 
-Set `STRIPE_WEBHOOK_SECRET` to the signing secret for the Stripe webhook
-endpoint, separately from `STRIPE_SECRET_KEY`. Configure a Stripe webhook
-endpoint with the URL `https://auth.outboundendurance.com/api/stripe/webhook`
-and subscribe it to these events:
+The env sync creates a Stripe webhook endpoint at
+`BASE_URL/api/stripe/webhook` and uploads its signing secret to Vercel.
+`STRIPE_WEBHOOK_SECRET` is required by the running application but does not
+belong in `.env.preview` or `.env.production`. Each sync replaces all Stripe
+webhook endpoints in the selected Stripe mode that point to that exact URL.
+The subscribed event list's single source of truth is
+[`STRIPE_WEBHOOK_EVENTS`](./lib/billing/stripe/webhook-policy.ts).
 
-- `checkout.session.completed`
-- `checkout.session.async_payment_succeeded`
-- `customer.subscription.created`
-- `customer.subscription.updated`
-- `customer.subscription.deleted`
+For local webhook testing, run `stripe listen --forward-to
+localhost:3000/api/stripe/webhook` and pass its printed signing secret to the
+local app process as `STRIPE_WEBHOOK_SECRET`; it does not need to be saved in an
+env file.
 
 The endpoint verifies each signature against the unmodified request body and
 stores each verified event once. Checkout and subscription lifecycle events
@@ -276,11 +284,11 @@ Generate a better auth secret
 
 ## Shared sessions
 
-When `BETTER_AUTH_URL` uses any `outboundendurance.com` host, Better Auth trusts
+When `BASE_URL` uses any `outboundendurance.com` host, Better Auth trusts
 all HTTPS subdomains and the apex origin. In production, configure it as
 `https://auth.outboundendurance.com` to share the session cookie across
 subdomains; preview deployments keep host-only cookies. Local development
-trusts the configured `BETTER_AUTH_URL` origin and localhost ports. Because
+trusts the configured `BASE_URL` origin and localhost ports. Because
 the wildcard trusts every subdomain, use it only when all subdomains are
 controlled and protected from takeover or untrusted hosting.
 

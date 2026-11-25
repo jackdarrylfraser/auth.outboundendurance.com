@@ -1,7 +1,10 @@
+import Stripe from "stripe";
 import { Vercel } from "@vercel/sdk";
 import { readFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
 import { fileURLToPath } from "node:url";
+import { getStripeLivemode } from "../lib/billing/stripe/catalog-definition";
+import { STRIPE_WEBHOOK_EVENTS } from "../lib/billing/stripe/webhook-policy";
 import { env } from "../lib/env";
 
 type Environment = "preview" | "production";
@@ -16,6 +19,23 @@ type VercelCredentials = {
   projectId: string;
   teamId?: string;
 };
+type StripeWebhookEndpoint = Pick<
+  Stripe.WebhookEndpoint,
+  "id" | "url" | "livemode"
+> & {
+  secret?: string;
+};
+type StripeWebhookApi = {
+  webhookEndpoints: {
+    list(
+      params: Stripe.WebhookEndpointListParams,
+    ): AsyncIterable<StripeWebhookEndpoint>;
+    del(id: string): Promise<unknown>;
+    create(
+      params: Stripe.WebhookEndpointCreateParams,
+    ): Promise<StripeWebhookEndpoint>;
+  };
+};
 
 const LOCAL_ONLY_ENV_KEYS = new Set([
   "VERCEL_TOKEN",
@@ -23,6 +43,7 @@ const LOCAL_ONLY_ENV_KEYS = new Set([
   "VERCEL_TEAM_ID",
 ]);
 
+const GENERATED_ENV_KEYS = new Set(["STRIPE_WEBHOOK_SECRET"]);
 const usage =
   "Usage: bun --env-file=.env.<preview|production> run scripts/vercel-env-upload.ts --environment <preview|production> [--check]";
 
@@ -50,7 +71,7 @@ export function compareEnvFiles(
 function getEnvironmentValues(source: object): Record<string, string> {
   const values: Record<string, string> = {};
   for (const [key, value] of Object.entries(source)) {
-    if (typeof value === "string") {
+    if (typeof value === "string" && !GENERATED_ENV_KEYS.has(key)) {
       values[key] = value;
     }
   }
@@ -87,14 +108,15 @@ function getOptions(args: string[]): {
   };
 }
 
-function getCredentials(env: {
-  VERCEL_TOKEN?: string;
-  VERCEL_PROJECT_ID?: string;
-  VERCEL_TEAM_ID?: string;
-}): VercelCredentials {
-  const token = env.VERCEL_TOKEN?.trim();
-  const projectId = env.VERCEL_PROJECT_ID?.trim();
-  const teamId = env.VERCEL_TEAM_ID?.trim();
+function getCredentials(
+  source: Pick<
+    typeof env,
+    "VERCEL_TOKEN" | "VERCEL_PROJECT_ID" | "VERCEL_TEAM_ID"
+  >,
+): VercelCredentials {
+  const token = source.VERCEL_TOKEN?.trim();
+  const projectId = source.VERCEL_PROJECT_ID?.trim();
+  const teamId = source.VERCEL_TEAM_ID?.trim();
 
   if (!token || !projectId) {
     throw new Error(
@@ -106,6 +128,89 @@ function getCredentials(env: {
     token,
     projectId,
     ...(teamId ? { teamId } : {}),
+  };
+}
+
+export function getStripeWebhookUrl(baseUrl: string): string {
+  const parsedBaseUrl = new URL(baseUrl);
+  if (parsedBaseUrl.protocol !== "https:") {
+    throw new Error(
+      "BASE_URL must use HTTPS when provisioning Stripe webhooks.",
+    );
+  }
+
+  return new URL("/api/stripe/webhook", parsedBaseUrl).toString();
+}
+
+export function assertStripeEnvironmentMode(
+  environment: Environment,
+  livemode: boolean,
+): void {
+  if ((environment === "production") !== livemode) {
+    throw new Error(
+      `The ${environment} environment requires a Stripe ${environment === "production" ? "live" : "test"} key.`,
+    );
+  }
+}
+
+export async function listStripeWebhooksAtUrl(
+  stripe: StripeWebhookApi,
+  url: string,
+): Promise<StripeWebhookEndpoint[]> {
+  const matchingEndpoints: StripeWebhookEndpoint[] = [];
+
+  for await (const endpoint of stripe.webhookEndpoints.list({ limit: 100 })) {
+    if (endpoint.url === url) {
+      matchingEndpoints.push(endpoint);
+    }
+  }
+
+  return matchingEndpoints;
+}
+
+export async function replaceStripeWebhook(
+  stripe: StripeWebhookApi,
+  environment: Environment,
+  url: string,
+  livemode: boolean,
+): Promise<{ endpointId: string; secret: string; replacedCount: number }> {
+  const existingEndpoints = await listStripeWebhooksAtUrl(stripe, url);
+  if (existingEndpoints.some((endpoint) => endpoint.livemode !== livemode)) {
+    throw new Error(
+      "Stripe returned a webhook endpoint for the wrong mode; refusing to replace it.",
+    );
+  }
+
+  for (const endpoint of existingEndpoints) {
+    await stripe.webhookEndpoints.del(endpoint.id);
+  }
+
+  const endpoint = await stripe.webhookEndpoints.create({
+    url,
+    enabled_events: STRIPE_WEBHOOK_EVENTS,
+    metadata: {
+      environment,
+    },
+  });
+
+  if (endpoint.url !== url || endpoint.livemode !== livemode) {
+    await stripe.webhookEndpoints.del(endpoint.id);
+    throw new Error(
+      "Stripe created a webhook endpoint with unexpected settings.",
+    );
+  }
+
+  if (!endpoint.secret) {
+    await stripe.webhookEndpoints.del(endpoint.id);
+    throw new Error(
+      "Stripe did not return the new webhook signing secret; endpoint was removed.",
+    );
+  }
+
+  return {
+    endpointId: endpoint.id,
+    secret: endpoint.secret,
+    replacedCount: existingEndpoints.length,
   };
 }
 
@@ -300,22 +405,62 @@ async function main(): Promise<void> {
 
   const variables = getEnvironmentValues(env);
   const credentials = getCredentials(env);
-  const result = await syncEnvironment(
-    options.environment,
-    variables,
-    credentials,
-    options.checkOnly,
-  );
+  const webhookUrl = getStripeWebhookUrl(env.BASE_URL);
+  const livemode = getStripeLivemode(env.STRIPE_SECRET_KEY);
+  assertStripeEnvironmentMode(options.environment, livemode);
+  const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+
+  const [matchingEndpoints, preflight] = await Promise.all([
+    listStripeWebhooksAtUrl(stripe, webhookUrl),
+    syncEnvironment(options.environment, variables, credentials, true),
+  ]);
+  if (matchingEndpoints.some((endpoint) => endpoint.livemode !== livemode)) {
+    throw new Error(
+      "Stripe returned a webhook endpoint for the wrong mode; refusing to replace it.",
+    );
+  }
 
   if (options.checkOnly) {
     console.info(
-      `Validated ${file}: will replace ${result.existingCount} ${options.environment} variables with ${result.variableCount} file variables.`,
+      `Validated ${file}: will replace ${matchingEndpoints.length} Stripe webhook endpoint(s) at ${webhookUrl} and ${preflight.existingCount} ${options.environment} variables with ${preflight.variableCount + 1} encrypted variables.`,
     );
     return;
   }
 
+  const webhook = await replaceStripeWebhook(
+    stripe,
+    options.environment,
+    webhookUrl,
+    livemode,
+  );
+  let result: { existingCount: number; variableCount: number };
+  try {
+    result = await syncEnvironment(
+      options.environment,
+      { ...variables, STRIPE_WEBHOOK_SECRET: webhook.secret },
+      credentials,
+      false,
+    );
+  } catch (error) {
+    try {
+      await stripe.webhookEndpoints.del(webhook.endpointId);
+    } catch (cleanupError) {
+      const syncMessage =
+        error instanceof Error ? error.message : "unknown Vercel error";
+      const cleanupMessage =
+        cleanupError instanceof Error
+          ? cleanupError.message
+          : "unknown Stripe error";
+      throw new Error(
+        `Vercel env sync failed (${syncMessage}) and the new Stripe webhook endpoint could not be removed (${cleanupMessage}); inspect ${webhookUrl}.`,
+      );
+    }
+
+    throw error;
+  }
+
   console.info(
-    `Synced ${result.variableCount} ${options.environment} variables.`,
+    `Synced ${result.variableCount} ${options.environment} variables and replaced ${webhook.replacedCount} Stripe webhook endpoint(s).`,
   );
 }
 

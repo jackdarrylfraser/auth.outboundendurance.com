@@ -1,3 +1,14 @@
+import type Stripe from "stripe";
+
+export const STRIPE_WEBHOOK_EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] =
+  [
+    "checkout.session.completed",
+    "checkout.session.async_payment_succeeded",
+    "customer.subscription.created",
+    "customer.subscription.updated",
+    "customer.subscription.deleted",
+  ];
+
 export type StripeWebhookEvent = {
   id: string;
   type: string;

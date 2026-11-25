@@ -7,13 +7,13 @@ import * as schema from "@/lib/db/schema";
 import { sendVerificationCode } from "@/emails/email";
 import { getTrustedOrigins } from "@/lib/auth/trusted-origins";
 
-const baseURL = new URL(env.BETTER_AUTH_URL);
+const baseURL = new URL(env.BASE_URL);
 const isProductionAuthHost =
   baseURL.hostname === "auth.outboundendurance.com";
 const trustedOrigins = getTrustedOrigins(baseURL);
 
 export const auth = betterAuth({
-  baseURL: env.BETTER_AUTH_URL,
+  baseURL: env.BASE_URL,
   database: drizzleAdapter(db, {
     provider: "sqlite",
     schema,
