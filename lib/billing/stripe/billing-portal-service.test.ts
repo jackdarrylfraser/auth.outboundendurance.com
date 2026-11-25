@@ -81,12 +81,12 @@ describe("Stripe Billing Portal service", () => {
     });
 
     const session = await service.createPortalSession({
-      userId: "user_123",
+      userId: "123",
       baseUrl: "https://auth.example.com",
     });
 
     assert.deepEqual(session, { url: "https://billing.stripe.com/session" });
-    assert.deepEqual(calls, ["customer:user_123", "configurations:100", "session"]);
+    assert.deepEqual(calls, ["customer:123", "configurations:100", "session"]);
     assert.deepEqual(sessionParams, {
       customer: "cus_123",
       configuration: "bpc_managed_match",
@@ -114,7 +114,7 @@ describe("Stripe Billing Portal service", () => {
 
     assert.equal(
       await service.createPortalSession({
-        userId: "user_without_customer",
+        userId: "456",
         baseUrl: "https://auth.example.com",
       }),
       null,
@@ -139,7 +139,7 @@ describe("Stripe Billing Portal service", () => {
 
     await assert.rejects(
       service.createPortalSession({
-        userId: "user_123",
+        userId: "123",
         baseUrl: "https://auth.example.com",
       }),
       /No active Stripe Billing Portal configuration has the required features/,

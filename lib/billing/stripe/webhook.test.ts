@@ -23,9 +23,9 @@ describe("Stripe webhook synchronization", () => {
   it("only reconciles a Stripe customer through its server-side user metadata", () => {
     assert.equal(
       getVerifiedStripeCustomerUserId({
-        metadata: { userId: "user_123" },
+        metadata: { userId: "123" },
       }),
-      "user_123",
+      "123",
     );
     assert.equal(
       getVerifiedStripeCustomerUserId({
@@ -35,8 +35,14 @@ describe("Stripe webhook synchronization", () => {
     );
     assert.equal(
       getVerifiedStripeCustomerUserId({
-        metadata: { userId: "user_123" },
+        metadata: { userId: "123" },
         deleted: true,
+      }),
+      null,
+    );
+    assert.equal(
+      getVerifiedStripeCustomerUserId({
+        metadata: { userId: "not-a-number" },
       }),
       null,
     );

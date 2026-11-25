@@ -15,7 +15,8 @@ async function createService(
   const database = drizzle(client);
   await client.execute(`
     CREATE TABLE stripe_customer (
-      user_id TEXT PRIMARY KEY NOT NULL,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL UNIQUE,
       stripe_customer_id TEXT NOT NULL,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
@@ -45,20 +46,20 @@ describe("Stripe customer service", () => {
     const { client, database, service, createdCustomers } = await createService();
     t.after(() => client.close());
     await database.insert(stripeCustomer).values({
-      userId: "user_123",
+      userId: 123,
       stripeCustomerId: "cus_existing",
       createdAt: new Date(0),
       updatedAt: new Date(0),
     });
 
-    assert.equal(await service.getStripeCustomerId("user_123"), "cus_existing");
+    assert.equal(await service.getStripeCustomerId("123"), "cus_existing");
     assert.equal(createdCustomers.length, 0);
   });
 
   it("creates and saves an idempotently mapped Stripe customer", async (t) => {
     const { client, service, createdCustomers } = await createService();
     t.after(() => client.close());
-    const user = { id: "user_123", email: "user@example.com" };
+    const user = { id: "123", email: "user@example.com" };
 
     assert.equal(await service.getOrCreateStripeCustomer(user), "cus_1");
     assert.equal(await service.getOrCreateStripeCustomer(user), "cus_1");
@@ -80,7 +81,7 @@ describe("Stripe customer service", () => {
   it("returns a concurrently saved mapping after a create conflict", async (t) => {
     const { client, service } = await createService(async (database) => {
       await database.insert(stripeCustomer).values({
-        userId: "user_123",
+        userId: 123,
         stripeCustomerId: "cus_concurrent",
         createdAt: new Date(0),
         updatedAt: new Date(0),
@@ -90,7 +91,7 @@ describe("Stripe customer service", () => {
 
     assert.equal(
       await service.getOrCreateStripeCustomer({
-        id: "user_123",
+        id: "123",
         email: "user@example.com",
       }),
       "cus_concurrent",

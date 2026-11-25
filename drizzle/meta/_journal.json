@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1794876604430,
-      "tag": "0000_lovely_the_renegades",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1794880355326,
-      "tag": "0001_awesome_mastermind",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1794883430645,
-      "tag": "0002_yummy_talkback",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1794884402128,
-      "tag": "0003_fearless_kate_bishop",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1795225894828,
-      "tag": "0004_workable_slyde",
+      "when": 1795618636500,
+      "tag": "0000_third_multiple_man",
       "breakpoints": true
     }
   ]

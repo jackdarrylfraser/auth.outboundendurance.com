@@ -8,7 +8,7 @@ import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
 type Session = { user: { id: string } } | null;
 type Cookie = { name: string; value: string };
 
-let session: Session = { user: { id: "user_123" } };
+let session: Session = { user: { id: "123" } };
 let sessionError: Error | undefined;
 let paidAccessError: Error | undefined;
 const sessionCalls: Cookie[] = [];
@@ -58,7 +58,7 @@ const cookie = {
 
 describe("POST /api/access", () => {
   beforeEach(() => {
-    session = { user: { id: "user_123" } };
+    session = { user: { id: "123" } };
     sessionError = undefined;
     paidAccessError = undefined;
     sessionCalls.length = 0;
@@ -97,7 +97,7 @@ describe("POST /api/access", () => {
       accessType: "paid",
       hasAccess: false,
     });
-    assert.deepEqual(paidAccessCalls, ["user_123"]);
+    assert.deepEqual(paidAccessCalls, ["123"]);
   });
 
   it("logs verification failures and returns unavailable", async () => {

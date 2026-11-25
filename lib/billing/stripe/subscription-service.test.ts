@@ -12,7 +12,8 @@ import {
   UnlinkedStripeCustomerError,
   type StripeSubscriptionRetrievalOperations,
 } from "@/lib/billing/stripe/subscription-service";
-import { stripeCustomer, stripeSubscription } from "@/lib/db/schema";
+import { stripeCustomer, stripeSubscription, user } from "@/lib/db/schema";
+import { createUserService } from "@/lib/user/service";
 import type { Infrastructure } from "@/lib/infrastructure/types";
 
 const subscription = {
@@ -28,15 +29,25 @@ async function createDatabase() {
   const client = createClient({ url: "file::memory:" });
   const database = drizzle(client);
   await client.executeMultiple(`
-    CREATE TABLE user (id TEXT PRIMARY KEY NOT NULL);
+    CREATE TABLE user (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      email_verified INTEGER NOT NULL DEFAULT 0,
+      image TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
     CREATE TABLE stripe_customer (
-      user_id TEXT PRIMARY KEY NOT NULL,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL UNIQUE,
       stripe_customer_id TEXT NOT NULL UNIQUE,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
     CREATE TABLE stripe_subscription (
-      id TEXT PRIMARY KEY NOT NULL,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      stripe_subscription_id TEXT NOT NULL UNIQUE,
       stripe_customer_id TEXT NOT NULL,
       status TEXT NOT NULL,
       current_period_end INTEGER NOT NULL,
@@ -48,25 +59,36 @@ async function createDatabase() {
       updated_at INTEGER NOT NULL
     );
   `);
-  await client.execute("INSERT INTO user (id) VALUES ('user_123')");
+  const [savedUser] = await database.insert(user).values({
+    name: "Test User",
+    email: "user@example.test",
+    emailVerified: false,
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
+  }).returning({ id: user.id });
+  assert.ok(savedUser);
   await database.insert(stripeCustomer).values({
-    userId: "user_123",
+    userId: savedUser.id,
     stripeCustomerId: "cus_123",
     createdAt: new Date(0),
     updatedAt: new Date(0),
   });
-  return { client, database };
+  return { client, database, userId: savedUser.id };
 }
 
 function createService(
   database: Infrastructure["db"],
-  customerMetadata: { userId?: string } | undefined = { userId: "user_123" },
+  userId: number,
+  customerMetadata: { userId?: string } | undefined = {
+    userId: String(userId),
+  },
   retrieveSubscription: StripeSubscriptionRetrievalOperations["retrieve"] =
     async () => subscription,
 ) {
   const customerLookups: string[] = [];
   const service = createStripeSubscriptionService({
     database,
+    userService: createUserService({ database }),
     stripeCustomers: {
       async retrieve(customerId) {
         customerLookups.push(customerId);
@@ -97,7 +119,7 @@ describe("Stripe subscription policy", () => {
         new Date(1234),
       ),
       {
-        id: "sub_123",
+        stripeSubscriptionId: "sub_123",
         stripeCustomerId: "cus_456",
         status: "active",
         currentPeriodEnd: new Date(1_800_000_000_000),
@@ -140,7 +162,7 @@ describe("Stripe subscription policy", () => {
 
 describe("Stripe subscription service", () => {
   it("retrieves and synchronizes a subscription using injected operations", async (t) => {
-    const { client, database } = await createDatabase();
+    const { client, database, userId } = await createDatabase();
     t.after(() => client.close());
     const calls: unknown[][] = [];
     const retrieveSubscription: StripeSubscriptionRetrievalOperations["retrieve"] =
@@ -150,6 +172,7 @@ describe("Stripe subscription service", () => {
       };
     const { service, customerLookups } = createService(
       database,
+      userId,
       undefined,
       retrieveSubscription,
     );
@@ -166,18 +189,18 @@ describe("Stripe subscription service", () => {
     const [saved] = await database
       .select()
       .from(stripeSubscription)
-      .where(eq(stripeSubscription.id, "sub_123"));
+      .where(eq(stripeSubscription.stripeSubscriptionId, "sub_123"));
     assert.equal(saved?.status, "active");
     assert.equal(saved?.lastEventCreatedAt.getTime(), eventCreatedAt.getTime());
   });
 
   it("verifies and saves a customer mapping when synchronizing", async (t) => {
-    const { client, database } = await createDatabase();
+    const { client, database, userId } = await createDatabase();
     t.after(() => client.close());
     await database
       .delete(stripeCustomer)
-      .where(eq(stripeCustomer.userId, "user_123"));
-    const { service, customerLookups } = createService(database);
+      .where(eq(stripeCustomer.userId, userId));
+    const { service, customerLookups } = createService(database, userId);
 
     await service.syncSubscription(subscription);
 
@@ -186,16 +209,16 @@ describe("Stripe subscription service", () => {
       .select()
       .from(stripeCustomer)
       .where(eq(stripeCustomer.stripeCustomerId, "cus_123"));
-    assert.equal(mapping?.userId, "user_123");
+    assert.equal(mapping?.userId, userId);
   });
 
   it("rejects an unverified or nonexistent customer user mapping", async (t) => {
-    const { client, database } = await createDatabase();
+    const { client, database, userId } = await createDatabase();
     t.after(() => client.close());
     await database
       .delete(stripeCustomer)
-      .where(eq(stripeCustomer.userId, "user_123"));
-    const { service } = createService(database, { userId: "unknown_user" });
+      .where(eq(stripeCustomer.userId, userId));
+    const { service } = createService(database, userId, { userId: "invalid" });
 
     await assert.rejects(
       service.syncSubscription(subscription),
@@ -205,7 +228,7 @@ describe("Stripe subscription service", () => {
   });
 
   it("does not overwrite a newer webhook event during stale refresh", async (t) => {
-    const { client, database } = await createDatabase();
+    const { client, database, userId } = await createDatabase();
     t.after(() => client.close());
     await database.insert(stripeSubscription).values({
       ...toStripeSubscriptionState(subscription, new Date(1000)),
@@ -213,7 +236,7 @@ describe("Stripe subscription service", () => {
       createdAt: new Date(1000),
       updatedAt: new Date(1000),
     });
-    const { service } = createService(database);
+    const { service } = createService(database, userId);
 
     await service.syncSubscription(
       { ...subscription, status: "canceled" },
@@ -223,13 +246,13 @@ describe("Stripe subscription service", () => {
     const [saved] = await database
       .select()
       .from(stripeSubscription)
-      .where(eq(stripeSubscription.id, "sub_123"));
+      .where(eq(stripeSubscription.stripeSubscriptionId, "sub_123"));
     assert.equal(saved?.status, "active");
     assert.equal(saved?.lastEventCreatedAt.getTime(), 2000);
   });
 
   it("ignores an out-of-order webhook event", async (t) => {
-    const { client, database } = await createDatabase();
+    const { client, database, userId } = await createDatabase();
     t.after(() => client.close());
     await database.insert(stripeSubscription).values({
       ...toStripeSubscriptionState(subscription, new Date(1000)),
@@ -237,7 +260,7 @@ describe("Stripe subscription service", () => {
       createdAt: new Date(1000),
       updatedAt: new Date(1000),
     });
-    const { service } = createService(database);
+    const { service } = createService(database, userId);
 
     await service.syncSubscription(
       { ...subscription, status: "canceled" },
@@ -247,7 +270,7 @@ describe("Stripe subscription service", () => {
     const [saved] = await database
       .select()
       .from(stripeSubscription)
-      .where(eq(stripeSubscription.id, "sub_123"));
+      .where(eq(stripeSubscription.stripeSubscriptionId, "sub_123"));
     assert.equal(saved?.status, "active");
     assert.equal(saved?.lastEventCreatedAt.getTime(), 2000);
   });

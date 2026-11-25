@@ -2,7 +2,6 @@ import { infrastructure } from "@/lib/infrastructure/runtime";
 import { createUserService } from "@/lib/user/service";
 
 const seedUser = {
-  id: "seed-user-local",
   name: "Local Seed User",
   email: "seed.user@example.test",
 };

@@ -1,7 +1,7 @@
 import { eq, lte } from "drizzle-orm";
 import Stripe from "stripe";
 import type { Infrastructure } from "@/lib/infrastructure/types";
-import { stripeCustomer, stripeSubscription, user } from "@/lib/db/schema";
+import { stripeCustomer, stripeSubscription } from "@/lib/db/schema";
 import { getVerifiedStripeCustomerUserId } from "@/lib/billing/stripe/customer-link";
 import {
   getSubscriptionSyncGuard,
@@ -9,6 +9,7 @@ import {
   type StripeSubscriptionStateInput,
   type SubscriptionSyncOptions,
 } from "@/lib/billing/stripe/subscription-policy";
+import { toDatabaseUserId } from "@/lib/user/id";
 
 export class UnlinkedStripeCustomerError extends Error {
   constructor(customerId: string) {
@@ -35,8 +36,13 @@ export type RetrieveAndSyncOptions = SubscriptionSyncOptions & {
   requestOptions?: Stripe.RequestOptions;
 };
 
+type UserService = {
+  getUserById(userId: string): Promise<{ id: number } | null>;
+};
+
 export function createStripeSubscriptionService(dependencies: {
   database: Infrastructure["db"];
+  userService: UserService;
   stripeCustomers: StripeCustomerRetrievalOperations;
   stripeSubscriptions: StripeSubscriptionRetrievalOperations;
 }) {
@@ -61,12 +67,7 @@ export function createStripeSubscriptionService(dependencies: {
       throw new UnlinkedStripeCustomerError(customerId);
     }
 
-    const [existingUser] = await dependencies.database
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.id, userId))
-      .limit(1);
-
+    const existingUser = await dependencies.userService.getUserById(userId);
     if (!existingUser) {
       throw new UnlinkedStripeCustomerError(customerId);
     }
@@ -74,7 +75,7 @@ export function createStripeSubscriptionService(dependencies: {
     await dependencies.database
       .insert(stripeCustomer)
       .values({
-        userId,
+        userId: toDatabaseUserId(userId),
         stripeCustomerId: customerId,
         createdAt: syncedAt,
         updatedAt: syncedAt,
@@ -87,7 +88,10 @@ export function createStripeSubscriptionService(dependencies: {
       .where(eq(stripeCustomer.stripeCustomerId, customerId))
       .limit(1);
 
-    if (!customerMapping || customerMapping.userId !== userId) {
+    if (
+      !customerMapping ||
+      customerMapping.userId !== toDatabaseUserId(userId)
+    ) {
       throw new UnlinkedStripeCustomerError(customerId);
     }
   }
@@ -121,7 +125,7 @@ export function createStripeSubscriptionService(dependencies: {
         updatedAt: syncedAt,
       })
       .onConflictDoUpdate({
-        target: stripeSubscription.id,
+        target: stripeSubscription.stripeSubscriptionId,
         set: {
           stripeCustomerId: state.stripeCustomerId,
           status: state.status,

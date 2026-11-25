@@ -19,7 +19,8 @@ async function createService() {
   const database = drizzle(client);
   await client.execute(`
     CREATE TABLE stripe_event (
-      id TEXT PRIMARY KEY NOT NULL,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      stripe_event_id TEXT NOT NULL UNIQUE,
       type TEXT NOT NULL,
       event_created_at INTEGER NOT NULL,
       payload TEXT,
@@ -61,7 +62,7 @@ describe("Stripe webhook service", () => {
     const [storedEvent] = await database
       .select()
       .from(stripeEvent)
-      .where(eq(stripeEvent.id, event.id));
+      .where(eq(stripeEvent.stripeEventId, event.id));
     assert.equal(storedEvent?.type, event.type);
     assert.equal(
       storedEvent?.eventCreatedAt.getTime(),
@@ -100,7 +101,7 @@ describe("Stripe webhook service", () => {
     const [storedEvent] = await database
       .select()
       .from(stripeEvent)
-      .where(eq(stripeEvent.id, nonSubscriptionEvent.id));
+      .where(eq(stripeEvent.stripeEventId, nonSubscriptionEvent.id));
     assert.ok(storedEvent?.processedAt);
   });
 
@@ -120,7 +121,7 @@ describe("Stripe webhook service", () => {
     const [storedEvent] = await database
       .select()
       .from(stripeEvent)
-      .where(eq(stripeEvent.id, event.id));
+      .where(eq(stripeEvent.stripeEventId, event.id));
     assert.equal(storedEvent?.processedAt, null);
   });
 });

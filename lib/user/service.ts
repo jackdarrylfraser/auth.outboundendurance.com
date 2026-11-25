@@ -1,35 +1,50 @@
 import { eq } from "drizzle-orm";
 import type { Infrastructure } from "@/lib/infrastructure/types";
 import { user } from "@/lib/db/schema";
+import { parseDatabaseUserId } from "@/lib/user/id";
 
 type UserIdentity = Pick<typeof user.$inferSelect, "id" | "name" | "email">;
 
 export function createUserService(dependencies: {
   database: Infrastructure["db"];
 }) {
+  async function getUserById(id: string): Promise<UserIdentity | null> {
+    const databaseId = parseDatabaseUserId(id);
+    if (databaseId === null) {
+      return null;
+    }
+
+    const [foundUser] = await dependencies.database
+      .select({ id: user.id, name: user.name, email: user.email })
+      .from(user)
+      .where(eq(user.id, databaseId))
+      .limit(1);
+
+    return foundUser ?? null;
+  }
+
+  async function getUserByEmail(email: string): Promise<UserIdentity | null> {
+    const [foundUser] = await dependencies.database
+      .select({ id: user.id, name: user.name, email: user.email })
+      .from(user)
+      .where(eq(user.email, email))
+      .limit(1);
+
+    return foundUser ?? null;
+  }
+
   async function getOrCreateUser(input: {
-    id: string;
     name: string;
     email: string;
   }): Promise<{ user: UserIdentity; created: boolean }> {
-    const [existingUser] = await dependencies.database
-      .select({ id: user.id, name: user.name, email: user.email })
-      .from(user)
-      .where(eq(user.email, input.email))
-      .limit(1);
+    const existingUser = await getUserByEmail(input.email);
 
     if (existingUser) {
-      if (existingUser.id !== input.id) {
-        throw new Error(
-          `Cannot create user ${input.id}: email ${input.email} belongs to another user.`,
-        );
-      }
-
       return { user: existingUser, created: false };
     }
 
     const now = new Date();
-    await dependencies.database
+    const insertedUsers = await dependencies.database
       .insert(user)
       .values({
         ...input,
@@ -37,22 +52,19 @@ export function createUserService(dependencies: {
         createdAt: now,
         updatedAt: now,
       })
-      .onConflictDoNothing();
+      .onConflictDoNothing({ target: user.email })
+      .returning({ id: user.id });
 
-    const [savedUser] = await dependencies.database
-      .select({ id: user.id, name: user.name, email: user.email })
-      .from(user)
-      .where(eq(user.email, input.email))
-      .limit(1);
+    const savedUser = await getUserByEmail(input.email);
 
-    if (!savedUser || savedUser.id !== input.id) {
+    if (!savedUser) {
       throw new Error(
-        `Could not create user ${input.id}; the user ID may already be in use.`,
+        `Could not create or retrieve user with email ${input.email}.`,
       );
     }
 
-    return { user: savedUser, created: true };
+    return { user: savedUser, created: insertedUsers.length > 0 };
   }
 
-  return { getOrCreateUser };
+  return { getUserById, getOrCreateUser };
 }

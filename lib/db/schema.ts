@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
-  id: text("id").primaryKey(),
+  id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: integer("email_verified", { mode: "boolean" })
@@ -24,7 +24,7 @@ export const user = sqliteTable("user", {
 export const session = sqliteTable(
   "session",
   {
-    id: text("id").primaryKey(),
+    id: integer("id").primaryKey({ autoIncrement: true }),
     expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
     token: text("token").notNull().unique(),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
@@ -33,7 +33,7 @@ export const session = sqliteTable(
       .notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
-    userId: text("user_id")
+    userId: integer("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
@@ -43,10 +43,10 @@ export const session = sqliteTable(
 export const account = sqliteTable(
   "account",
   {
-    id: text("id").primaryKey(),
+    id: integer("id").primaryKey({ autoIncrement: true }),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
-    userId: text("user_id")
+    userId: integer("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     accessToken: text("access_token"),
@@ -71,7 +71,7 @@ export const account = sqliteTable(
 export const verification = sqliteTable(
   "verification",
   {
-    id: text("id").primaryKey(),
+    id: integer("id").primaryKey({ autoIncrement: true }),
     identifier: text("identifier").notNull(),
     value: text("value").notNull(),
     expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
@@ -86,8 +86,9 @@ export const verification = sqliteTable(
 export const stripeCustomer = sqliteTable(
   "stripe_customer",
   {
-    userId: text("user_id")
-      .primaryKey()
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     stripeCustomerId: text("stripe_customer_id").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
@@ -96,6 +97,7 @@ export const stripeCustomer = sqliteTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex("stripe_customer_user_id_unique").on(table.userId),
     uniqueIndex("stripe_customer_customerId_unique").on(
       table.stripeCustomerId,
     ),
@@ -105,7 +107,8 @@ export const stripeCustomer = sqliteTable(
 export const stripeSubscription = sqliteTable(
   "stripe_subscription",
   {
-    id: text("id").primaryKey(),
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    stripeSubscriptionId: text("stripe_subscription_id").notNull(),
     stripeCustomerId: text("stripe_customer_id")
       .notNull()
       .references(() => stripeCustomer.stripeCustomerId, {
@@ -133,6 +136,9 @@ export const stripeSubscription = sqliteTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex("stripe_subscription_stripeSubscriptionId_unique").on(
+      table.stripeSubscriptionId,
+    ),
     index("stripe_subscription_customer_status_idx").on(
       table.stripeCustomerId,
       table.status,
@@ -141,7 +147,8 @@ export const stripeSubscription = sqliteTable(
 );
 
 export const stripeEvent = sqliteTable("stripe_event", {
-  id: text("id").primaryKey(),
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  stripeEventId: text("stripe_event_id").notNull().unique(),
   type: text("type").notNull(),
   eventCreatedAt: integer("event_created_at", {
     mode: "timestamp_ms",
@@ -151,7 +158,8 @@ export const stripeEvent = sqliteTable("stripe_event", {
 });
 
 export const stripeCatalog = sqliteTable("stripe_catalog", {
-  livemode: integer("livemode", { mode: "boolean" }).primaryKey().notNull(),
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  livemode: integer("livemode", { mode: "boolean" }).notNull(),
   stripeProductId: text("stripe_product_id").notNull(),
   stripePriceId: text("stripe_price_id").notNull(),
   name: text("name").notNull(),
@@ -161,7 +169,7 @@ export const stripeCatalog = sqliteTable("stripe_catalog", {
   interval: text("interval").notNull(),
   intervalCount: integer("interval_count").notNull(),
   syncedAt: integer("synced_at", { mode: "timestamp_ms" }).notNull(),
-});
+}, (table) => [uniqueIndex("stripe_catalog_livemode_unique").on(table.livemode)]);
 
 export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),

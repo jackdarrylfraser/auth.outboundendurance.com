@@ -21,6 +21,9 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   trustedOrigins,
   advanced: {
+    database: {
+      generateId: "serial",
+    },
     crossSubDomainCookies: {
       enabled: isProductionAuthHost,
       ...(isProductionAuthHost ? { domain: ".outboundendurance.com" } : {}),

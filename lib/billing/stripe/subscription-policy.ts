@@ -36,7 +36,7 @@ export function toStripeSubscriptionState(
       : subscription.customer.id;
 
   return {
-    id: subscription.id,
+    stripeSubscriptionId: subscription.id,
     stripeCustomerId: customerId,
     status: subscription.status,
     currentPeriodEnd: new Date(Math.max(...periodEnds) * 1000),

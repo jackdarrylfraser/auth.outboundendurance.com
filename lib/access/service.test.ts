@@ -28,7 +28,7 @@ describe("access service", () => {
   it("checks only authentication when requested", async () => {
     let paidAccessChecks = 0;
     const service = createAccessService({
-      getSession: async () => ({ user: { id: "user_123" } }),
+      getSession: async () => ({ user: { id: "123" } }),
       async requirePaidAccess() {
         paidAccessChecks += 1;
       },
@@ -44,7 +44,7 @@ describe("access service", () => {
   it("reports paid access when the entitlement check succeeds", async () => {
     const checkedUsers: string[] = [];
     const service = createAccessService({
-      getSession: async () => ({ user: { id: "user_123" } }),
+      getSession: async () => ({ user: { id: "123" } }),
       async requirePaidAccess(userId) {
         checkedUsers.push(userId);
       },
@@ -54,12 +54,12 @@ describe("access service", () => {
       await service.checkAccess({ cookie, access: "paid" }),
       { type: "paid" },
     );
-    assert.deepEqual(checkedUsers, ["user_123"]);
+    assert.deepEqual(checkedUsers, ["123"]);
   });
 
   it("reports forbidden for users without paid entitlement", async () => {
     const service = createAccessService({
-      getSession: async () => ({ user: { id: "user_123" } }),
+      getSession: async () => ({ user: { id: "123" } }),
       async requirePaidAccess() {
         throw new PaidAccessRequiredError();
       },
@@ -74,7 +74,7 @@ describe("access service", () => {
   it("propagates unexpected access-check failures", async () => {
     const error = new Error("Database unavailable");
     const service = createAccessService({
-      getSession: async () => ({ user: { id: "user_123" } }),
+      getSession: async () => ({ user: { id: "123" } }),
       async requirePaidAccess() {
         throw error;
       },

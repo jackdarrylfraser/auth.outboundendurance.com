@@ -1,3 +1,5 @@
+import { parseDatabaseUserId } from "@/lib/user/id";
+
 export function getVerifiedStripeCustomerUserId(customer: {
   metadata?: { userId?: string };
   deleted?: unknown;
@@ -6,5 +8,7 @@ export function getVerifiedStripeCustomerUserId(customer: {
     return null;
   }
 
-  return customer.metadata.userId;
+  return parseDatabaseUserId(customer.metadata.userId) === null
+    ? null
+    : customer.metadata.userId;
 }

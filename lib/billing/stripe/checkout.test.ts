@@ -6,7 +6,7 @@ import {
   type CheckoutPlan,
 } from "@/lib/billing/stripe/checkout";
 
-const user = { id: "user_123", email: "user@example.com" };
+const user = { id: "123", email: "user@example.com" };
 const plan: CheckoutPlan = {
   priceId: "price_123",
   name: "Membership",
@@ -59,10 +59,10 @@ describe("Stripe checkout", () => {
       cancel_url:
         "https://auth.example.com/subscribe?returnTo=https%3A%2F%2Fmember.example.com%2Fworkouts",
       metadata: {
-        userId: "user_123",
+        userId: "123",
         returnTo: "https://member.example.com/workouts",
       },
-      subscription_data: { metadata: { userId: "user_123" } },
+      subscription_data: { metadata: { userId: "123" } },
     });
   });
 

@@ -23,18 +23,18 @@ export function createStripeWebhookService(dependencies: {
     await dependencies.database
       .insert(stripeEvent)
       .values({
-        id: event.id,
+        stripeEventId: event.id,
         type: event.type,
         eventCreatedAt: new Date(event.created * 1000),
         payload: JSON.stringify(event),
         processedAt: null,
       })
-      .onConflictDoNothing({ target: stripeEvent.id });
+      .onConflictDoNothing({ target: stripeEvent.stripeEventId });
 
     const [storedEvent] = await dependencies.database
       .select({ processedAt: stripeEvent.processedAt })
       .from(stripeEvent)
-      .where(eq(stripeEvent.id, event.id))
+      .where(eq(stripeEvent.stripeEventId, event.id))
       .limit(1);
 
     if (storedEvent?.processedAt) {
@@ -52,7 +52,7 @@ export function createStripeWebhookService(dependencies: {
     await dependencies.database
       .update(stripeEvent)
       .set({ processedAt: new Date() })
-      .where(eq(stripeEvent.id, event.id));
+      .where(eq(stripeEvent.stripeEventId, event.id));
 
     return false;
   }

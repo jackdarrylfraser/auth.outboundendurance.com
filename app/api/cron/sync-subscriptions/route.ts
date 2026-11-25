@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
   const staleBefore = new Date(Date.now() - subscriptionFreshnessMs);
   const startedAt = Date.now();
-  let cursor: string | undefined;
+  let cursor: number | undefined;
   let checked = 0;
   let synced = 0;
   const failures: string[] = [];
@@ -46,6 +46,7 @@ export async function GET(request: Request) {
     const staleSubscriptions = await infrastructure.db
       .select({
         id: stripeSubscription.id,
+        stripeSubscriptionId: stripeSubscription.stripeSubscriptionId,
         lastEventCreatedAt: stripeSubscription.lastEventCreatedAt,
       })
       .from(stripeSubscription)
@@ -74,7 +75,7 @@ export async function GET(request: Request) {
       checked += 1;
       try {
         await stripeSubscriptionService.retrieveAndSyncSubscription(
-          subscription.id,
+          subscription.stripeSubscriptionId,
           {
             expectedLastEventCreatedAt: subscription.lastEventCreatedAt,
             requestOptions: {
@@ -85,9 +86,9 @@ export async function GET(request: Request) {
         );
         synced += 1;
       } catch (error) {
-        failures.push(subscription.id);
+        failures.push(subscription.stripeSubscriptionId);
         infrastructure.logger.error(
-          { subscriptionId: subscription.id, err: error },
+          { subscriptionId: subscription.stripeSubscriptionId, err: error },
           "Subscription reconciliation failed.",
         );
       }

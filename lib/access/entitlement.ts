@@ -6,6 +6,7 @@ import {
   PaidAccessRequiredError,
 } from "@/lib/access/entitlement-policy";
 import { infrastructure } from "@/lib/infrastructure/server";
+import { toDatabaseUserId } from "@/lib/user/id";
 
 export async function requirePaidAccess(userId: string): Promise<void> {
   const subscriptions = await infrastructure.db
@@ -15,7 +16,7 @@ export async function requirePaidAccess(userId: string): Promise<void> {
       stripeCustomer,
       eq(stripeSubscription.stripeCustomerId, stripeCustomer.stripeCustomerId),
     )
-    .where(eq(stripeCustomer.userId, userId));
+    .where(eq(stripeCustomer.userId, toDatabaseUserId(userId)));
 
   if (!hasPaidEntitlement(subscriptions)) {
     throw new PaidAccessRequiredError();
@@ -35,7 +36,7 @@ export async function hasManageableStripeSubscription(
       stripeCustomer,
       eq(stripeSubscription.stripeCustomerId, stripeCustomer.stripeCustomerId),
     )
-    .where(eq(stripeCustomer.userId, userId));
+    .where(eq(stripeCustomer.userId, toDatabaseUserId(userId)));
 
   return hasManageableSubscription(subscriptions, new Date());
 }

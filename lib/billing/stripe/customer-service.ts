@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
 import type { Infrastructure } from "@/lib/infrastructure/types";
 import { stripeCustomer } from "@/lib/db/schema";
+import { toDatabaseUserId } from "@/lib/user/id";
 
 export type StripeCustomerOperations = {
   create(
@@ -19,7 +20,7 @@ export function createStripeCustomerService(dependencies: {
     const [mapping] = await dependencies.database
       .select({ customerId: stripeCustomer.stripeCustomerId })
       .from(stripeCustomer)
-      .where(eq(stripeCustomer.userId, userId))
+      .where(eq(stripeCustomer.userId, toDatabaseUserId(userId)))
       .limit(1);
 
     return mapping?.customerId ?? null;
@@ -47,7 +48,7 @@ export function createStripeCustomerService(dependencies: {
     await dependencies.database
       .insert(stripeCustomer)
       .values({
-        userId: user.id,
+        userId: toDatabaseUserId(user.id),
         stripeCustomerId: customer.id,
         createdAt: now,
         updatedAt: now,

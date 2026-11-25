@@ -29,6 +29,8 @@ bun run test
 The database uses Turso/libSQL with Drizzle ORM. For local development, copy
 `.env.example` to `.env.local`; the default URL uses a local `local.db` file and
 does not need an auth token.
+Locally generated row IDs use database-generated integers. Better Auth returns
+these IDs as strings to the application; Stripe object IDs remain unique strings.
 Billing data is stored separately from authentication: `stripe_customer` maps
 users to Stripe customers, `stripe_subscription` stores subscription state,
 and `stripe_event` records successfully processed webhook event IDs.
