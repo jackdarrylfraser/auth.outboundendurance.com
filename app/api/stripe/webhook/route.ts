@@ -27,42 +27,44 @@ export async function POST(request: Request) {
   }
 
   const rawBody = await request.text();
-  let event: Stripe.Event;
+  let verifiedEvent: Stripe.Event | undefined;
 
   try {
-    event = await infrastructure.stripe.webhooks.constructEventAsync(
+    verifiedEvent = await infrastructure.stripe.webhooks.constructEventAsync(
       rawBody,
       signature,
       webhookSecret,
     );
+    await processStripeWebhookEvent(verifiedEvent);
   } catch (error) {
-    if (
-      error instanceof Stripe.errors.StripeSignatureVerificationError ||
-      error instanceof SyntaxError
-    ) {
-      getLogger().warn(
-        { errorType: error.name },
-        "Stripe webhook rejected: invalid signature or payload.",
+    if (!verifiedEvent) {
+      if (
+        error instanceof Stripe.errors.StripeSignatureVerificationError ||
+        error instanceof SyntaxError
+      ) {
+        getLogger().warn(
+          { errorType: error.name },
+          "Stripe webhook rejected: invalid signature or payload.",
+        );
+        return Response.json(
+          { error: "Invalid Stripe webhook signature or payload." },
+          { status: 400, headers: noStoreHeaders },
+        );
+      }
+
+      getLogger().error(
+        { err: error },
+        "Stripe webhook signature verification failed.",
       );
-      return Response.json(
-        { error: "Invalid Stripe webhook signature or payload." },
-        { status: 400, headers: noStoreHeaders },
-      );
+      throw error;
     }
 
     getLogger().error(
-      { err: error },
-      "Stripe webhook signature verification failed.",
-    );
-    throw error;
-  }
-  const eventLog = { eventId: event.id, eventType: event.type };
-
-  try {
-    await processStripeWebhookEvent(event);
-  } catch (error) {
-    getLogger().error(
-      { ...eventLog, err: error },
+      {
+        eventId: verifiedEvent.id,
+        eventType: verifiedEvent.type,
+        err: error,
+      },
       "Stripe webhook processing failed.",
     );
     throw error;
