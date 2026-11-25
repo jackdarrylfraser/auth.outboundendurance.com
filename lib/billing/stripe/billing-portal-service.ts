@@ -4,6 +4,32 @@ import {
   type StripeBillingPortalConfigurationCandidate,
 } from "@/lib/billing/stripe/billing-portal-policy";
 
+type StripeBillingPortalConfigurationOperations<
+  T extends StripeBillingPortalConfigurationCandidate,
+> = {
+  configurations: {
+    list(params: {
+      limit: number;
+    }): AsyncIterable<T>;
+  };
+};
+
+export async function findStripeBillingPortalConfiguration<
+  T extends StripeBillingPortalConfigurationCandidate,
+>(
+  billingPortal: StripeBillingPortalConfigurationOperations<T>,
+): Promise<T | null> {
+  const configurations: T[] = [];
+
+  for await (const configuration of billingPortal.configurations.list({
+    limit: 100,
+  })) {
+    configurations.push(configuration);
+  }
+
+  return selectStripeBillingPortalConfiguration(configurations);
+}
+
 type StripeCustomerService = {
   getStripeCustomerId(userId: string): Promise<string | null>;
 };
@@ -28,15 +54,7 @@ export function createStripeBillingPortalService(dependencies: {
   billingPortal: StripeBillingPortalOperations;
 }) {
   async function findConfiguration() {
-    const configurations: StripeBillingPortalConfigurationCandidate[] = [];
-
-    for await (const configuration of dependencies.billingPortal.configurations.list(
-      { limit: 100 },
-    )) {
-      configurations.push(configuration);
-    }
-
-    return selectStripeBillingPortalConfiguration(configurations);
+    return findStripeBillingPortalConfiguration(dependencies.billingPortal);
   }
 
   async function createPortalSession(input: {
@@ -64,5 +82,8 @@ export function createStripeBillingPortalService(dependencies: {
     });
   }
 
-  return { createPortalSession };
+  return {
+    createPortalSession,
+    findStripeBillingPortalConfiguration: findConfiguration,
+  };
 }

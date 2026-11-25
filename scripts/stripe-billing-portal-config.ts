@@ -1,8 +1,6 @@
 import Stripe from "stripe";
 import { z } from "zod";
-import {
-  findStripeBillingPortalConfiguration,
-} from "@/lib/billing/stripe/billing-portal";
+import { findStripeBillingPortalConfiguration } from "@/lib/billing/stripe/billing-portal-service";
 import {
   getStripeBillingPortalConfigurationFeatures,
   STRIPE_CANCELLATION_FEEDBACK_OPTIONS,
@@ -52,7 +50,9 @@ async function main() {
         (await stripe.billing.feedbackOptions.create({ description }));
 
       if (option.livemode !== isLiveMode) {
-        throw new Error("Stripe returned a feedback option for the wrong mode.");
+        throw new Error(
+          "Stripe returned a feedback option for the wrong mode.",
+        );
       }
 
       return option.id;
@@ -61,8 +61,9 @@ async function main() {
   const features =
     getStripeBillingPortalConfigurationFeatures(feedbackOptionIds);
 
-  const knownConfiguration =
-    await findStripeBillingPortalConfiguration(stripe);
+  const knownConfiguration = await findStripeBillingPortalConfiguration(
+    stripe.billingPortal,
+  );
 
   if (knownConfiguration && knownConfiguration.livemode !== isLiveMode) {
     throw new Error("Stripe returned a configuration for the wrong mode.");
@@ -71,12 +72,12 @@ async function main() {
   const configuration = knownConfiguration
     ? await stripe.billingPortal.configurations.update(knownConfiguration.id, {
         active: true,
-      features,
+        features,
         metadata,
         name: STRIPE_BILLING_PORTAL_CONFIGURATION_NAME,
       })
     : await stripe.billingPortal.configurations.create({
-      features,
+        features,
         metadata,
         name: STRIPE_BILLING_PORTAL_CONFIGURATION_NAME,
       });

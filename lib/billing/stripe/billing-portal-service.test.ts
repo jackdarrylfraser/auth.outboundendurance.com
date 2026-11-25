@@ -23,6 +23,29 @@ function configuration(
 }
 
 describe("Stripe Billing Portal service", () => {
+  it("exposes the selected configuration lookup", async () => {
+    const service = createStripeBillingPortalService({
+      customerService: {
+        getStripeCustomerId: async () => "cus_123",
+      },
+      billingPortal: {
+        configurations: {
+          async *list() {
+            yield configuration("bpc_managed_match", true);
+          },
+        },
+        sessions: {
+          create: async () => ({ url: "https://billing.stripe.com/session" }),
+        },
+      },
+    });
+
+    assert.deepEqual(
+      await service.findStripeBillingPortalConfiguration(),
+      configuration("bpc_managed_match", true),
+    );
+  });
+
   it("uses the mapped customer, selected configuration, and manage return URL", async () => {
     const calls: string[] = [];
     let sessionParams:
