@@ -1,5 +1,5 @@
 import { getServerSession } from "@/lib/auth/session";
-import { getCurrentCheckoutPlan } from "@/lib/billing/stripe/checkout";
+import { getCurrentCheckoutPlan } from "@/lib/billing/stripe/checkout-catalog";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 

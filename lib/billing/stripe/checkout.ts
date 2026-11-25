@@ -1,9 +1,9 @@
-import Stripe from "stripe";
-import { eq } from "drizzle-orm";
-import { env } from "@/lib/env";
-import { db } from "@/lib/db";
-import { stripeCatalog } from "@/lib/db/schema";
-import { getStripeLivemode } from "@/lib/billing/stripe/catalog-definition";
+import type Stripe from "stripe";
+import {
+  getCheckoutCancelUrl,
+  getCheckoutSuccessUrl,
+  STRIPE_METADATA_VALUE_MAX_LENGTH,
+} from "@/lib/billing/stripe/checkout-policy";
 
 export type CheckoutPlan = {
   priceId: string;
@@ -15,31 +15,6 @@ export type CheckoutPlan = {
   intervalCount: number;
 };
 
-export async function getCurrentCheckoutPlan(): Promise<CheckoutPlan> {
-  const livemode = getStripeLivemode(env.STRIPE_SECRET_KEY);
-  const [catalog] = await db
-    .select()
-    .from(stripeCatalog)
-    .where(eq(stripeCatalog.livemode, livemode))
-    .limit(1);
-
-  if (!catalog) {
-    throw new Error(
-      `The Stripe ${livemode ? "live" : "test"} subscription catalog is not synchronized. Run \`bun run stripe:catalog:sync\` before deploying.`,
-    );
-  }
-
-  return {
-    priceId: catalog.stripePriceId,
-    name: catalog.name,
-    description: catalog.description,
-    unitAmount: catalog.unitAmount,
-    currency: catalog.currency,
-    interval: catalog.interval,
-    intervalCount: catalog.intervalCount,
-  };
-}
-
 export function getStripeCustomerIdFromSession(
   customer: Stripe.Checkout.Session["customer"],
 ): string | null {
@@ -48,4 +23,66 @@ export function getStripeCustomerIdFromSession(
   }
 
   return customer?.id ?? null;
+}
+
+type CheckoutUser = {
+  id: string;
+  email: string;
+};
+
+type StripeCustomerService = {
+  getOrCreateStripeCustomer(user: CheckoutUser): Promise<string>;
+};
+
+type StripeCheckoutOperations = {
+  create(
+    params: Stripe.Checkout.SessionCreateParams,
+  ): Promise<{ url: string | null }>;
+};
+
+export function createStripeCheckoutService(dependencies: {
+  getCurrentPlan: () => Promise<CheckoutPlan>;
+  customerService: StripeCustomerService;
+  checkoutSessions: StripeCheckoutOperations;
+}) {
+  async function createCheckoutSession(input: {
+    user: CheckoutUser;
+    baseUrl: string;
+    returnTo: string | null;
+  }): Promise<string> {
+    if (
+      input.returnTo &&
+      input.returnTo.length > STRIPE_METADATA_VALUE_MAX_LENGTH
+    ) {
+      throw new Error(
+        "The return URL is too long to store in Stripe Checkout metadata.",
+      );
+    }
+
+    const plan = await dependencies.getCurrentPlan();
+    const customerId =
+      await dependencies.customerService.getOrCreateStripeCustomer(input.user);
+    const checkoutSession = await dependencies.checkoutSessions.create({
+      mode: "subscription",
+      customer: customerId,
+      line_items: [{ price: plan.priceId, quantity: 1 }],
+      success_url: getCheckoutSuccessUrl(input.baseUrl),
+      cancel_url: getCheckoutCancelUrl(input.baseUrl, input.returnTo),
+      metadata: {
+        userId: input.user.id,
+        ...(input.returnTo ? { returnTo: input.returnTo } : {}),
+      },
+      subscription_data: {
+        metadata: { userId: input.user.id },
+      },
+    });
+
+    if (!checkoutSession.url) {
+      throw new Error("Stripe did not return a Checkout Session URL.");
+    }
+
+    return checkoutSession.url;
+  }
+
+  return { createCheckoutSession };
 }

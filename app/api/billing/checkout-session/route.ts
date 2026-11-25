@@ -6,7 +6,7 @@ import {
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
 import { stripe } from "@/lib/billing/stripe/client";
 import { stripeCustomerService } from "@/lib/billing/stripe/customer";
-import { getCurrentCheckoutPlan } from "@/lib/billing/stripe/checkout";
+import { getCurrentCheckoutPlan } from "@/lib/billing/stripe/checkout-catalog";
 import {
   getCheckoutCancelUrl,
   getCheckoutSuccessUrl,
