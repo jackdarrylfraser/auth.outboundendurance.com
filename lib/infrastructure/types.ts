@@ -9,3 +9,15 @@ export type Infrastructure = {
   resend: ReturnType<typeof getResendClient>;
   logger: ReturnType<typeof getLogger>;
 };
+
+export type InfrastructureFactoryDependencies<
+  Database = Infrastructure["db"],
+  StripeClient = Infrastructure["stripe"],
+  ResendClient = Infrastructure["resend"],
+  AppLogger = Infrastructure["logger"],
+> = {
+  createDb: () => Database;
+  createStripe: () => StripeClient;
+  createResend: () => ResendClient;
+  createLogger: () => AppLogger;
+};
