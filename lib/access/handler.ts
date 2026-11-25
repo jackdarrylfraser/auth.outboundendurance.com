@@ -1,6 +1,7 @@
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
+import type { AccessHandlerDependencies } from "@/lib/access/types";
 import { getLogger } from "@/lib/logger";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
@@ -14,18 +15,6 @@ const accessRequestSchema = z.object({
   }),
   access: z.enum(["authenticated", "paid"]).default("paid"),
 });
-
-type AccessSession = {
-  user: {
-    id: string;
-  };
-};
-
-type AccessHandlerDependencies = {
-  getSession: (cookie: { name: string; value: string }) => Promise<AccessSession | null>;
-  requirePaidAccess: (userId: string) => Promise<void>;
-  logError?: (message: string, error: unknown) => void;
-};
 
 export function createAccessHandler({
   getSession,
