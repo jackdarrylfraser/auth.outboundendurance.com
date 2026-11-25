@@ -1,9 +1,8 @@
 import { and, asc, gt, lte } from "drizzle-orm";
 import { env } from "@/lib/env";
 import { stripeSubscriptionService } from "@/lib/billing/stripe/subscriptions";
-import { db } from "@/lib/db";
-import { getLogger } from "@/lib/logger";
 import { stripeSubscription } from "@/lib/db/schema";
+import { infrastructure } from "@/lib/infrastructure/server";
 
 export const maxDuration = 30;
 
@@ -42,7 +41,7 @@ export async function GET(request: Request) {
       break;
     }
 
-    const staleSubscriptions = await db
+    const staleSubscriptions = await infrastructure.db
       .select({
         id: stripeSubscription.id,
         lastEventCreatedAt: stripeSubscription.lastEventCreatedAt,
@@ -85,7 +84,7 @@ export async function GET(request: Request) {
         synced += 1;
       } catch (error) {
         failures.push(subscription.id);
-        getLogger().error(
+        infrastructure.logger.error(
           { subscriptionId: subscription.id, err: error },
           "Subscription reconciliation failed.",
         );

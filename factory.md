@@ -85,10 +85,22 @@ Migrate each route in the same order: compose its service, leave HTTP-specific w
 
 ### 5. Migrate incrementally
 
-- Use the access endpoint as the first low-risk slice. Preserve `lib/access/handler.ts` and its dependency-injected behavior, then wire dependencies through the new composition.
-- Migrate billing workflows one at a time, keeping route contracts and error behavior stable.
-- Update cron routes and scripts to use the same services so operational and app entry points share business behavior.
-- Avoid unrelated refactors while migrating each slice.
+Treat each entry point as a small vertical slice: migrate its composition and service calls, preserve its external behavior, and finish its verification before moving on.
+
+1. **Establish the access slice**
+   - Use the access endpoint as the reference migration because its handler already supports injected dependencies.
+   - Keep `lib/access/handler.ts` and its request/response behavior unchanged; wire its session and access dependencies through the shared server composition.
+2. **Migrate app billing workflows**
+   - Migrate checkout, billing portal, and webhook entry points individually, following step 4's route boundaries.
+   - For each workflow, move callers to the service before removing or bypassing the previous orchestration path.
+   - Preserve route contracts, authentication behavior, and error handling throughout each migration.
+3. **Migrate operational entry points**
+   - Update cron routes and standalone scripts to call the same domain services used by app routes.
+   - Keep entry-point concerns such as cron authorization, scheduling, CLI arguments, and output formatting at those boundaries.
+4. **Close each slice before starting another**
+   - Run the focused tests and lint for the migrated slice, then confirm no active caller still depends on the old path.
+   - Remove obsolete duplicate orchestration only after all relevant callers use the shared service.
+   - Keep unrelated cleanup and refactoring out of the migration.
 
 ### 6. Verify each slice
 
