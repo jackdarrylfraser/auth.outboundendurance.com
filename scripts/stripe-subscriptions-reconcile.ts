@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { infrastructure } from "@/lib/infrastructure/runtime";
 
 const cronPath = "/api/cron/sync-subscriptions";
 const args = process.argv.slice(2);
@@ -28,7 +29,7 @@ function getCronEndpoint(baseUrl: string): string {
 }
 
 async function triggerCron(endpoint: string): Promise<void> {
-  const secret = process.env.CRON_SECRET?.trim();
+  const secret = infrastructure.env.CRON_SECRET?.trim();
   if (!secret) {
     throw new Error(
       "CRON_SECRET is missing from the selected Vercel environment.",

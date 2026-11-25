@@ -5,18 +5,24 @@ export function createInfrastructure<
   StripeClient,
   ResendClient,
   AppLogger,
+  VercelClient,
+  Environment,
 >(
   dependencies: InfrastructureFactoryDependencies<
     Database,
     StripeClient,
     ResendClient,
-    AppLogger
+    AppLogger,
+    VercelClient,
+    Environment
   >,
 ) {
   return {
+    env: dependencies.env,
     db: dependencies.createDb(),
     stripe: dependencies.createStripe(),
     resend: dependencies.createResend(),
     logger: dependencies.createLogger(),
+    vercel: dependencies.createVercel(),
   };
 }

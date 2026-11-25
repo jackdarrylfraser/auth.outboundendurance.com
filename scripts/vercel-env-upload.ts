@@ -1,11 +1,11 @@
-import Stripe from "stripe";
-import { Vercel } from "@vercel/sdk";
+import type Stripe from "stripe";
+import type { Vercel } from "@vercel/sdk";
 import { readFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
 import { fileURLToPath } from "node:url";
 import { getStripeLivemode } from "../lib/billing/stripe/catalog-definition";
+import { infrastructure } from "../lib/infrastructure/runtime";
 import { STRIPE_WEBHOOK_EVENTS } from "../lib/billing/stripe/webhook-policy";
-import { env } from "../lib/env";
 
 type Environment = "preview" | "production";
 type ExistingVariable = {
@@ -110,7 +110,7 @@ function getOptions(args: string[]): {
 
 function getCredentials(
   source: Pick<
-    typeof env,
+    typeof infrastructure.env,
     "VERCEL_TOKEN" | "VERCEL_PROJECT_ID" | "VERCEL_TEAM_ID"
   >,
 ): VercelCredentials {
@@ -310,10 +310,7 @@ export async function syncEnvironment(
   variables: Record<string, string>,
   credentials: VercelCredentials,
   checkOnly: boolean,
-  client = new Vercel({
-    bearerToken: credentials.token,
-    timeoutMs: 30_000,
-  }),
+  client = infrastructure.vercel,
 ): Promise<{ existingCount: number; variableCount: number }> {
   const uploadVariables = Object.fromEntries(
     Object.entries(variables).filter(([key]) => !LOCAL_ONLY_ENV_KEYS.has(key)),
@@ -403,16 +400,16 @@ async function main(): Promise<void> {
     );
   }
 
+  const { env, stripe, vercel } = infrastructure;
   const variables = getEnvironmentValues(env);
   const credentials = getCredentials(env);
   const webhookUrl = getStripeWebhookUrl(env.BASE_URL);
   const livemode = getStripeLivemode(env.STRIPE_SECRET_KEY);
   assertStripeEnvironmentMode(options.environment, livemode);
-  const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
   const [matchingEndpoints, preflight] = await Promise.all([
     listStripeWebhooksAtUrl(stripe, webhookUrl),
-    syncEnvironment(options.environment, variables, credentials, true),
+    syncEnvironment(options.environment, variables, credentials, true, vercel),
   ]);
   if (matchingEndpoints.some((endpoint) => endpoint.livemode !== livemode)) {
     throw new Error(
@@ -440,6 +437,7 @@ async function main(): Promise<void> {
       { ...variables, STRIPE_WEBHOOK_SECRET: webhook.secret },
       credentials,
       false,
+      vercel,
     );
   } catch (error) {
     try {

@@ -27,13 +27,14 @@ lib/auth/                          Auth configuration and session workflows
 ### 1. Establish types and boundaries
 
 - Define the infrastructure and service dependency types.
-- Keep validated environment configuration separate from services.
+- Keep validated environment configuration as `infrastructure.env`; server code and scripts should use this shared object rather than independently parsing application environment values.
 - Decide which dependencies are shared globally and which belong to an individual workflow.
 
 ### 2. Add the infrastructure factory
 
-- Add a small `createInfrastructure()` factory and a shared server-side instance.
-- Consolidate dependency setup currently spread across `lib/db/index.ts`, `lib/billing/stripe/client.ts`, `lib/email/resend.ts`, and `lib/logger.ts` gradually.
+- Add a small `createInfrastructure()` factory and one shared runtime instance for the app and scripts. Keep the Next-only server guard in `lib/infrastructure/server.ts`; scripts import the shared runtime directly.
+- Include shared clients, including Vercel, in the infrastructure object so scripts do not construct duplicate clients.
+- Keep the existing app environment validation in `lib/env.ts`; scripts use `infrastructure.env` rather than defining their own environment parsers.
 - Allow tests to supply fakes without creating clients or making network calls.
 - Preserve appropriate singleton behavior; do not instantiate global clients once per request.
 
@@ -95,8 +96,9 @@ Treat each entry point as a small vertical slice: migrate its composition and se
    - For each workflow, move callers to the service before removing or bypassing the previous orchestration path.
    - Preserve route contracts, authentication behavior, and error handling throughout each migration.
 3. **Migrate operational entry points**
-   - Update cron routes and standalone scripts to call the same domain services used by app routes.
-   - Keep entry-point concerns such as cron authorization, scheduling, CLI arguments, and output formatting at those boundaries.
+   - Update cron routes and standalone scripts to use the shared infrastructure clients and `infrastructure.env`.
+   - Move reusable workflow logic into services where it reduces duplication; keep entry-point concerns such as scheduling, CLI arguments, and output formatting at those boundaries.
+   - Keep the subscription reconciliation CLI as a remote endpoint caller; use infrastructure env for its secret while preserving process environment forwarding needed to launch Vercel CLI.
 4. **Close each slice before starting another**
    - Run the focused tests and lint for the migrated slice, then confirm no active caller still depends on the old path.
    - Remove obsolete duplicate orchestration only after all relevant callers use the shared service.

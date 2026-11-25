@@ -1,11 +1,11 @@
 import { eq } from "drizzle-orm";
-import { env } from "@/lib/env";
-import { db } from "@/lib/db";
 import { stripeCatalog } from "@/lib/db/schema";
 import { getStripeLivemode } from "@/lib/billing/stripe/catalog-definition";
 import type { CheckoutPlan } from "@/lib/billing/stripe/checkout";
+import { infrastructure } from "@/lib/infrastructure/server";
 
 export async function getCurrentCheckoutPlan(): Promise<CheckoutPlan> {
+  const { db, env } = infrastructure;
   const livemode = getStripeLivemode(env.STRIPE_SECRET_KEY);
   const [catalog] = await db
     .select()

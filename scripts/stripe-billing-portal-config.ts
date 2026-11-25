@@ -1,6 +1,6 @@
-import Stripe from "stripe";
-import { z } from "zod";
+import type Stripe from "stripe";
 import { findStripeBillingPortalConfiguration } from "@/lib/billing/stripe/billing-portal-service";
+import { infrastructure } from "@/lib/infrastructure/runtime";
 import {
   getStripeBillingPortalConfigurationFeatures,
   STRIPE_CANCELLATION_FEEDBACK_OPTIONS,
@@ -9,16 +9,8 @@ import {
 } from "@/lib/billing/stripe/billing-portal-policy";
 import { getStripeLivemode } from "@/lib/billing/stripe/catalog-definition";
 
-const scriptEnv = z
-  .object({
-    STRIPE_SECRET_KEY: z.string().trim().min(1),
-  })
-  .parse({
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-  });
-
-const isLiveMode = getStripeLivemode(scriptEnv.STRIPE_SECRET_KEY);
-const stripe = new Stripe(scriptEnv.STRIPE_SECRET_KEY);
+const { env, stripe } = infrastructure;
+const isLiveMode = getStripeLivemode(env.STRIPE_SECRET_KEY);
 const metadata = {
   managed_by: STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER,
 };

@@ -1,5 +1,4 @@
 import { and, asc, gt, lte } from "drizzle-orm";
-import { env } from "@/lib/env";
 import { stripeSubscriptionService } from "@/lib/billing/stripe/subscriptions";
 import { stripeSubscription } from "@/lib/db/schema";
 import { infrastructure } from "@/lib/infrastructure/server";
@@ -13,14 +12,17 @@ const subscriptionFreshnessMs = 23 * 60 * 60 * 1000;
 const processingBudgetMs = 20_000;
 
 export async function GET(request: Request) {
-  if (!env.CRON_SECRET) {
+  if (!infrastructure.env.CRON_SECRET) {
     return Response.json(
       { error: "Cron authentication is not configured." },
       { status: 503, headers: noStoreHeaders },
     );
   }
 
-  if (request.headers.get("authorization") !== `Bearer ${env.CRON_SECRET}`) {
+  if (
+    request.headers.get("authorization") !==
+    `Bearer ${infrastructure.env.CRON_SECRET}`
+  ) {
     return Response.json(
       { error: "Unauthorized." },
       { status: 401, headers: noStoreHeaders },

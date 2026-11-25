@@ -1,12 +1,12 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins";
-import { env } from "@/lib/env";
-import { db } from "@/lib/db";
+import { infrastructure } from "@/lib/infrastructure/server";
 import * as schema from "@/lib/db/schema";
 import { sendVerificationCode } from "@/emails/email";
 import { getTrustedOrigins } from "@/lib/auth/trusted-origins";
 
+const { env, db } = infrastructure;
 const baseURL = new URL(env.BASE_URL);
 const isProductionAuthHost =
   baseURL.hostname === "auth.outboundendurance.com";

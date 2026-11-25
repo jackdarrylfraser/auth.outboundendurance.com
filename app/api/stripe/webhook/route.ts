@@ -1,5 +1,4 @@
 import Stripe from "stripe";
-import { env } from "@/lib/env";
 import { getLogger } from "@/lib/logger";
 import { processStripeWebhookEvent } from "@/lib/billing/stripe/webhook";
 import { infrastructure } from "@/lib/infrastructure/server";
@@ -17,7 +16,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = infrastructure.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
     getLogger().error("Stripe webhook secret is not configured.");
     return Response.json(

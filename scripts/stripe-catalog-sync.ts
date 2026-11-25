@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
-import { createClient } from "@libsql/client";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/libsql";
-import Stripe from "stripe";
-import { z } from "zod";
+import type Stripe from "stripe";
 import { stripeCatalog } from "@/lib/db/schema";
+import { infrastructure } from "@/lib/infrastructure/runtime";
 import {
   assertStripeSubscriptionDefinitionIsConfigured,
   getStripeLivemode,
@@ -13,31 +11,8 @@ import {
   stripeSubscriptionDefinition,
 } from "@/lib/billing/stripe/catalog-definition";
 
-const scriptEnv = z
-  .object({
-    STRIPE_SECRET_KEY: z.string().trim().min(1),
-    TURSO_DATABASE_URL: z.string().trim().min(1),
-    TURSO_AUTH_TOKEN: z.string().trim().optional(),
-  })
-  .parse({
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-    TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
-    TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
-  });
-
-if (!scriptEnv.TURSO_DATABASE_URL.startsWith("file:") && !scriptEnv.TURSO_AUTH_TOKEN) {
-  throw new Error("TURSO_AUTH_TOKEN must be set for a remote database.");
-}
-
-const livemode = getStripeLivemode(scriptEnv.STRIPE_SECRET_KEY);
-const stripe = new Stripe(scriptEnv.STRIPE_SECRET_KEY);
-const client = createClient({
-  url: scriptEnv.TURSO_DATABASE_URL,
-  ...(scriptEnv.TURSO_AUTH_TOKEN
-    ? { authToken: scriptEnv.TURSO_AUTH_TOKEN }
-    : {}),
-});
-const db = drizzle(client);
+const { db, stripe, env } = infrastructure;
+const livemode = getStripeLivemode(env.STRIPE_SECRET_KEY);
 
 const catalogMetadata = {
   managed_by: STRIPE_CATALOG_MANAGED_BY,

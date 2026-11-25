@@ -1,5 +1,4 @@
 import { getServerSession } from "@/lib/auth/session";
-import { env } from "@/lib/env";
 import { stripeCustomerService } from "@/lib/billing/stripe/customer";
 import { createStripeBillingPortalService } from "@/lib/billing/stripe/billing-portal-service";
 import { infrastructure } from "@/lib/infrastructure/server";
@@ -23,7 +22,7 @@ export async function POST() {
 
   const portalSession = await billingPortalService.createPortalSession({
     userId: session.user.id,
-    baseUrl: env.BASE_URL,
+    baseUrl: infrastructure.env.BASE_URL,
   });
   if (!portalSession) {
     return Response.json(

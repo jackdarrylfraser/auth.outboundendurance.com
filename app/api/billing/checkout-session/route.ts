@@ -1,5 +1,4 @@
 import { getServerSession } from "@/lib/auth/session";
-import { env } from "@/lib/env";
 import {
   requirePaidAccess,
 } from "@/lib/access/entitlement";
@@ -72,7 +71,7 @@ export async function POST(request: Request) {
 
     const returnTo = getAllowedReturnUrl(
       typeof requestedReturnTo === "string" ? requestedReturnTo : undefined,
-      env.BASE_URL,
+      infrastructure.env.BASE_URL,
     );
     if (requestedReturnTo && !returnTo) {
       return Response.json(
@@ -92,7 +91,7 @@ export async function POST(request: Request) {
         id: session.user.id,
         email: session.user.email,
       },
-      baseUrl: env.BASE_URL,
+      baseUrl: infrastructure.env.BASE_URL,
       returnTo,
     });
 

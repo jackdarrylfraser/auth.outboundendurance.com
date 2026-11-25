@@ -1,12 +1,11 @@
 import { getServerSession } from "@/lib/auth/session";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
 import { requirePaidAccess } from "@/lib/access/entitlement";
-import { env } from "@/lib/env";
-import { stripe } from "@/lib/billing/stripe/client";
 import { stripeCustomerService } from "@/lib/billing/stripe/customer";
 import { getStripeCustomerIdFromSession } from "@/lib/billing/stripe/checkout";
 import { isCheckoutSessionId } from "@/lib/billing/stripe/checkout-policy";
 import { getAllowedReturnUrl } from "@/lib/auth/return-url";
+import { infrastructure } from "@/lib/infrastructure/server";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 
@@ -43,7 +42,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const checkoutSession = await stripe.checkout.sessions.retrieve(
+    const checkoutSession = await infrastructure.stripe.checkout.sessions.retrieve(
       body.sessionId,
     );
     const customerId = await stripeCustomerService.getStripeCustomerId(
@@ -91,7 +90,7 @@ export async function POST(request: Request) {
         status: "confirmed",
         returnTo: getAllowedReturnUrl(
           checkoutSession.metadata?.returnTo,
-          env.BASE_URL,
+          infrastructure.env.BASE_URL,
         ),
       },
       { headers: noStoreHeaders },

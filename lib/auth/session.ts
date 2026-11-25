@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth/server";
-import { env } from "@/lib/env";
+import { infrastructure } from "@/lib/infrastructure/server";
 import { getLogger } from "@/lib/logger";
 
 function countCookie(headers: Headers, cookieName: string): number {
@@ -10,6 +10,7 @@ function countCookie(headers: Headers, cookieName: string): number {
 }
 
 export async function getServerSession() {
+  const { env } = infrastructure;
   const requestHeaders = await headers();
   const { headers: responseHeaders, response: session } =
     await auth.api.getSession({
