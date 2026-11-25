@@ -64,23 +64,33 @@ Preview.
 Set `LOG_LEVEL` in both files before running the environment uploader; use
 `warn` for Production and a more verbose level such as `info` for Preview.
 
-Authenticate the Vercel CLI and link this repository to the intended Vercel
-project, then validate and upload each environment:
+Set `VERCEL_TOKEN` and `VERCEL_PROJECT_ID` in each selected `.env.preview` or
+`.env.production` file. For a team project, also set `VERCEL_TEAM_ID`; it may
+remain empty for a personal project. These uploader settings are listed in
+`.env.example` but are local-only and are never uploaded to Vercel. The token
+must have permission to manage environment variables for the project. Find the
+project and team IDs in the Vercel project settings. Then validate and upload
+each environment. The sync commands load the selected file into `process.env`
+using Bun's `--env-file` flag, and the uploader reads the validated values from
+`lib/env.ts`:
 
 ```sh
-bunx vercel login
-bunx vercel link
 bun run sync:env:preview -- --check
 bun run sync:env:preview
 bun run sync:env:prod -- --check
 bun run sync:env:prod
 ```
 
-The uploader parses the selected file and `.env.example` with `dotenv`; it
-fails before making changes unless the files have exactly the same variable
-names and all values are non-empty. It then removes the selected Vercel
-environment's variables and recreates the file's variables as Secrets,
-sending values through standard input without printing them. Keep Production
+The uploader compares the selected file and `.env.example` with Node's built-in
+`.env` parser; it fails before making changes unless the files have exactly the
+same variable names and all application values are non-empty. Upload values
+and Vercel credentials come from the validated `env` export in `lib/env.ts`. It
+uses Vercel's official `@vercel/sdk` to
+list the selected environment's variables, remove them by ID, and recreate the
+file's variables as encrypted values. Variable values and the access token are
+not printed. `--check` performs validation and API reads without making
+changes. The uploader also stops if Vercel reports hidden production variables
+or a paginated list, rather than risk syncing an incomplete set. Keep Production
 and Preview credentials and databases separate, and use Stripe live keys for
 Production and test keys for Preview. Variables shared with another Vercel
 environment cause the sync to stop rather than delete that other environment's

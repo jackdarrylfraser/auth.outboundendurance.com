@@ -12,6 +12,9 @@ export const env = createEnv({
     RESEND_FROM_EMAIL: z.string().trim().min(1),
     TURSO_DATABASE_URL: z.string().trim().min(1),
     TURSO_AUTH_TOKEN: z.string().trim().optional(),
+    VERCEL_TOKEN: z.string().trim().min(1).optional(),
+    VERCEL_PROJECT_ID: z.string().trim().min(1).optional(),
+    VERCEL_TEAM_ID: z.string().trim().optional(),
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
       .optional(),
@@ -26,6 +29,9 @@ export const env = createEnv({
     RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
     TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
     TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
+    VERCEL_TOKEN: process.env.VERCEL_TOKEN,
+    VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID,
+    VERCEL_TEAM_ID: process.env.VERCEL_TEAM_ID,
     LOG_LEVEL: process.env.LOG_LEVEL,
   },
   emptyStringAsUndefined: true,
