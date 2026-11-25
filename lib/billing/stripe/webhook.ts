@@ -1,26 +1,10 @@
-import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { stripeEvent } from "@/lib/db/schema";
 import { stripeSubscriptionService } from "@/lib/billing/stripe/subscriptions";
-import {
-  getStripeSubscriptionId,
-  type StripeWebhookEvent,
-} from "@/lib/billing/stripe/webhook-policy";
+import { createStripeWebhookService } from "@/lib/billing/stripe/webhook-service";
 
-export async function processStripeWebhookEvent(
-  event: StripeWebhookEvent,
-): Promise<void> {
-  const subscriptionId = getStripeSubscriptionId(event);
+export const stripeWebhookService = createStripeWebhookService({
+  database: db,
+  subscriptionService: stripeSubscriptionService,
+});
 
-  if (subscriptionId) {
-    await stripeSubscriptionService.retrieveAndSyncSubscription(
-      subscriptionId,
-      { eventCreatedAt: new Date(event.created * 1000) },
-    );
-  }
-
-  await db
-    .update(stripeEvent)
-    .set({ processedAt: new Date() })
-    .where(eq(stripeEvent.id, event.id));
-}
+export const { processStripeWebhookEvent } = stripeWebhookService;

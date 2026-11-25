@@ -1,7 +1,4 @@
 import Stripe from "stripe";
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { stripeEvent } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { getLogger } from "@/lib/logger";
 import { stripe } from "@/lib/billing/stripe/client";
@@ -62,27 +59,6 @@ export async function POST(request: Request) {
   const eventLog = { eventId: event.id, eventType: event.type };
 
   try {
-    await db
-      .insert(stripeEvent)
-      .values({
-        id: event.id,
-        type: event.type,
-        eventCreatedAt: new Date(event.created * 1000),
-        payload: JSON.stringify(event),
-        processedAt: null,
-      })
-      .onConflictDoNothing({ target: stripeEvent.id });
-
-    const [storedEvent] = await db
-      .select({ processedAt: stripeEvent.processedAt })
-      .from(stripeEvent)
-      .where(eq(stripeEvent.id, event.id))
-      .limit(1);
-
-    if (storedEvent?.processedAt) {
-      return Response.json({ received: true }, { headers: noStoreHeaders });
-    }
-
     await processStripeWebhookEvent(event);
   } catch (error) {
     getLogger().error(
