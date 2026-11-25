@@ -1,12 +1,11 @@
 import "server-only";
-import { stripe } from "@/lib/billing/stripe/client";
 import { createStripeCustomerService } from "@/lib/billing/stripe/customer-service";
-import { db } from "@/lib/db";
+import { infrastructure } from "@/lib/infrastructure/server";
 
 export const stripeCustomerService = createStripeCustomerService({
-  database: db,
+  database: infrastructure.db,
   stripeCustomers: {
     create: (customer, options) =>
-      stripe.customers.create(customer, options),
+      infrastructure.stripe.customers.create(customer, options),
   },
 });

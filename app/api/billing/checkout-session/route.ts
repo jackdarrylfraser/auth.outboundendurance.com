@@ -4,17 +4,22 @@ import {
   requirePaidAccess,
 } from "@/lib/access/entitlement";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
-import { stripe } from "@/lib/billing/stripe/client";
 import { stripeCustomerService } from "@/lib/billing/stripe/customer";
 import { getCurrentCheckoutPlan } from "@/lib/billing/stripe/checkout-catalog";
+import { createStripeCheckoutService } from "@/lib/billing/stripe/checkout";
 import {
-  getCheckoutCancelUrl,
-  getCheckoutSuccessUrl,
   STRIPE_METADATA_VALUE_MAX_LENGTH,
 } from "@/lib/billing/stripe/checkout-policy";
 import { getAllowedReturnUrl } from "@/lib/auth/return-url";
+import { infrastructure } from "@/lib/infrastructure/server";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
+
+const checkoutService = createStripeCheckoutService({
+  getCurrentPlan: getCurrentCheckoutPlan,
+  customerService: stripeCustomerService,
+  checkoutSessions: infrastructure.stripe.checkout.sessions,
+});
 
 export async function POST(request: Request) {
   const session = await getServerSession();
@@ -88,33 +93,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const plan = await getCurrentCheckoutPlan();
-
-  const customerId = await stripeCustomerService.getOrCreateStripeCustomer({
-    id: session.user.id,
-    email: session.user.email,
-  });
-  const checkoutSession = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: customerId,
-    line_items: [{ price: plan.priceId, quantity: 1 }],
-    success_url: getCheckoutSuccessUrl(env.BASE_URL),
-    cancel_url: getCheckoutCancelUrl(env.BASE_URL, returnTo),
-    metadata: {
-      userId: session.user.id,
-      ...(returnTo ? { returnTo } : {}),
+  const checkoutUrl = await checkoutService.createCheckoutSession({
+    user: {
+      id: session.user.id,
+      email: session.user.email,
     },
-    subscription_data: {
-      metadata: { userId: session.user.id },
-    },
+    baseUrl: env.BASE_URL,
+    returnTo,
   });
-
-  if (!checkoutSession.url) {
-    throw new Error("Stripe did not return a Checkout Session URL.");
-  }
 
   return Response.json(
-    { url: checkoutSession.url },
+    { url: checkoutUrl },
     { headers: noStoreHeaders },
   );
 }

@@ -1,11 +1,10 @@
-import { db } from "@/lib/db";
-import { stripe } from "@/lib/billing/stripe/client";
 import { createStripeSubscriptionService } from "@/lib/billing/stripe/subscription-service";
+import { infrastructure } from "@/lib/infrastructure/server";
 
 export { UnlinkedStripeCustomerError } from "@/lib/billing/stripe/subscription-service";
 
 export const stripeSubscriptionService = createStripeSubscriptionService({
-  database: db,
-  stripeCustomers: stripe.customers,
-  stripeSubscriptions: stripe.subscriptions,
+  database: infrastructure.db,
+  stripeCustomers: infrastructure.stripe.customers,
+  stripeSubscriptions: infrastructure.stripe.subscriptions,
 });

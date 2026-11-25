@@ -65,10 +65,23 @@ Add focused fake-dependency tests for each service, including customer idempoten
 
 ### 4. Thin route handlers
 
-- Move business orchestration from routes such as `app/api/billing/checkout-session/route.ts` and `app/api/stripe/webhook/route.ts` into services.
-- Keep HTTP validation, response construction, and status-code decisions at the route boundary.
-- Keep Stripe webhook signature verification tied to the raw request body at the HTTP boundary; pass the verified event to the webhook service for processing.
-- Compose each route's service once at the module boundary.
+Migrate each route in the same order: compose its service, leave HTTP-specific work at the boundary, delegate the workflow, and verify that the route contract is unchanged.
+
+1. **Compose dependencies once**
+   - Build each route's service from the shared server infrastructure at the module boundary, not during each request.
+   - Pass only the dependencies the service needs; do not pass the full infrastructure object by default.
+2. **Keep the HTTP boundary explicit**
+   - Leave request parsing and validation, authentication boundaries, response construction, and status-code decisions in the route.
+   - Keep business orchestration in the service, with no `Request`, `Response`, or HTTP status handling in service code.
+3. **Migrate routes by workflow**
+   - Start with the access endpoint, then migrate checkout and billing portal routes, and then the Stripe webhook route.
+   - For each route, replace orchestration with a service call while preserving its existing request and response contract and error behavior.
+4. **Preserve webhook verification**
+   - Read the raw request body and verify the Stripe signature in the webhook route.
+   - Pass only the verified event to the webhook processing service; do not move signature verification into that service.
+5. **Verify each migrated route**
+   - Add or retain focused tests for route-level validation, authentication, responses, and status codes, alongside the service tests from step 3.
+   - Confirm each route composes its service once and that client-side code cannot import server infrastructure.
 
 ### 5. Migrate incrementally
 

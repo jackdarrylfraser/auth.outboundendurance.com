@@ -1,8 +1,8 @@
 import Stripe from "stripe";
 import { env } from "@/lib/env";
 import { getLogger } from "@/lib/logger";
-import { stripe } from "@/lib/billing/stripe/client";
 import { processStripeWebhookEvent } from "@/lib/billing/stripe/webhook";
+import { infrastructure } from "@/lib/infrastructure/server";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
-    event = await stripe.webhooks.constructEventAsync(
+    event = await infrastructure.stripe.webhooks.constructEventAsync(
       rawBody,
       signature,
       webhookSecret,

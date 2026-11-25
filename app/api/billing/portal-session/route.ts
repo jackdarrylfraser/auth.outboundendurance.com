@@ -1,10 +1,15 @@
 import { getServerSession } from "@/lib/auth/session";
 import { env } from "@/lib/env";
-import { stripe } from "@/lib/billing/stripe/client";
 import { stripeCustomerService } from "@/lib/billing/stripe/customer";
-import { findStripeBillingPortalConfiguration } from "@/lib/billing/stripe/billing-portal";
+import { createStripeBillingPortalService } from "@/lib/billing/stripe/billing-portal-service";
+import { infrastructure } from "@/lib/infrastructure/server";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
+
+const billingPortalService = createStripeBillingPortalService({
+  customerService: stripeCustomerService,
+  billingPortal: infrastructure.stripe.billingPortal,
+});
 
 export async function POST() {
   const session = await getServerSession();
@@ -16,29 +21,16 @@ export async function POST() {
     );
   }
 
-  const customerId = await stripeCustomerService.getStripeCustomerId(
-    session.user.id,
-  );
-
-  if (!customerId) {
+  const portalSession = await billingPortalService.createPortalSession({
+    userId: session.user.id,
+    baseUrl: env.BASE_URL,
+  });
+  if (!portalSession) {
     return Response.json(
       { error: "No Stripe customer is associated with this account." },
       { status: 404, headers: noStoreHeaders },
     );
   }
-
-  const configuration = await findStripeBillingPortalConfiguration(stripe);
-  if (!configuration) {
-    throw new Error(
-      "No active Stripe Billing Portal configuration has the required features. Run `bun run stripe:portal:configure` with this environment's Stripe secret key.",
-    );
-  }
-
-  const portalSession = await stripe.billingPortal.sessions.create({
-    customer: customerId,
-    configuration: configuration.id,
-    return_url: new URL("/manage", env.BASE_URL).toString(),
-  });
 
   return Response.json(
     { url: portalSession.url },

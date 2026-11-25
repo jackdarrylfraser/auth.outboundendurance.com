@@ -1,13 +1,13 @@
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
 import { stripeCustomer, stripeSubscription } from "@/lib/db/schema";
 import { hasManageableSubscription } from "@/lib/access/entitlement-policy";
 import { createAccessService } from "@/lib/access/entitlement-service";
 import { stripeSubscriptionService } from "@/lib/billing/stripe/subscriptions";
+import { infrastructure } from "@/lib/infrastructure/server";
 
 const accessService = createAccessService({
   loadSubscriptions: async (userId) =>
-    db
+    infrastructure.db
       .select({
         id: stripeSubscription.id,
         status: stripeSubscription.status,
@@ -29,7 +29,7 @@ export const { requirePaidAccess } = accessService;
 export async function hasManageableStripeSubscription(
   userId: string,
 ): Promise<boolean> {
-  const subscriptions = await db
+  const subscriptions = await infrastructure.db
     .select({
       status: stripeSubscription.status,
       currentPeriodEnd: stripeSubscription.currentPeriodEnd,
