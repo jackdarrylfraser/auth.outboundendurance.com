@@ -1,30 +1,26 @@
 import { eq } from "drizzle-orm";
 import { stripeCustomer, stripeSubscription } from "@/lib/db/schema";
-import { hasManageableSubscription } from "@/lib/access/entitlement-policy";
-import { createAccessService } from "@/lib/access/entitlement-service";
-import { stripeSubscriptionService } from "@/lib/billing/stripe/subscriptions";
+import {
+  hasManageableSubscription,
+  hasPaidEntitlement,
+  PaidAccessRequiredError,
+} from "@/lib/access/entitlement-policy";
 import { infrastructure } from "@/lib/infrastructure/server";
 
-const accessService = createAccessService({
-  loadSubscriptions: async (userId) =>
-    infrastructure.db
-      .select({
-        id: stripeSubscription.id,
-        status: stripeSubscription.status,
-        cancelAtPeriodEnd: stripeSubscription.cancelAtPeriodEnd,
-        lastSyncedAt: stripeSubscription.lastSyncedAt,
-        lastEventCreatedAt: stripeSubscription.lastEventCreatedAt,
-      })
-      .from(stripeSubscription)
-      .innerJoin(
-        stripeCustomer,
-        eq(stripeSubscription.stripeCustomerId, stripeCustomer.stripeCustomerId),
-      )
-      .where(eq(stripeCustomer.userId, userId)),
-  subscriptionService: stripeSubscriptionService,
-});
+export async function requirePaidAccess(userId: string): Promise<void> {
+  const subscriptions = await infrastructure.db
+    .select({ status: stripeSubscription.status })
+    .from(stripeSubscription)
+    .innerJoin(
+      stripeCustomer,
+      eq(stripeSubscription.stripeCustomerId, stripeCustomer.stripeCustomerId),
+    )
+    .where(eq(stripeCustomer.userId, userId));
 
-export const { requirePaidAccess } = accessService;
+  if (!hasPaidEntitlement(subscriptions)) {
+    throw new PaidAccessRequiredError();
+  }
+}
 
 export async function hasManageableStripeSubscription(
   userId: string,

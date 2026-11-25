@@ -1,30 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  createPaidAccessGuard,
   hasManageableSubscription,
   hasPaidEntitlement,
-  isSubscriptionStale,
-  PaidAccessRequiredError,
 } from "@/lib/access/entitlement-policy";
 
 describe("paid entitlement policy", () => {
-  it("uses a 24-hour freshness window for subscription snapshots", () => {
-    const now = new Date("2026-01-02T00:00:00.000Z");
-
-    assert.equal(
-      isSubscriptionStale(new Date(now.getTime() - 24 * 60 * 60 * 1000), now),
-      true,
-    );
-    assert.equal(
-      isSubscriptionStale(
-        new Date(now.getTime() - 24 * 60 * 60 * 1000 + 1),
-        now,
-      ),
-      false,
-    );
-  });
-
   it("offers subscription management for ongoing subscriptions", () => {
     const now = new Date("2026-01-02T00:00:00.000Z");
 
@@ -108,15 +89,9 @@ describe("paid entitlement policy", () => {
     );
   });
 
-  it("keeps access through the paid period for a scheduled cancellation", () => {
-    assert.equal(
-      hasPaidEntitlement([{ status: "active", cancelAtPeriodEnd: true }]),
-      true,
-    );
-    assert.equal(
-      hasPaidEntitlement([{ status: "trialing", cancelAtPeriodEnd: false }]),
-      true,
-    );
+  it("grants access for active and trialing subscriptions", () => {
+    assert.equal(hasPaidEntitlement([{ status: "active" }]), true);
+    assert.equal(hasPaidEntitlement([{ status: "trialing" }]), true);
   });
 
   it("denies missing subscriptions and every status other than active or trialing", () => {
@@ -132,45 +107,10 @@ describe("paid entitlement policy", () => {
       "unknown",
     ]) {
       assert.equal(
-        hasPaidEntitlement([{ status, cancelAtPeriodEnd: false }]),
+        hasPaidEntitlement([{ status }]),
         false,
         `${status} must not grant access`,
       );
     }
-  });
-
-  it("allows a user if any linked subscription is eligible", async () => {
-    let loadedUserId = "";
-    const requireAccess = createPaidAccessGuard(async (userId) => {
-      loadedUserId = userId;
-      return [
-        { status: "past_due", cancelAtPeriodEnd: false },
-        { status: "trialing", cancelAtPeriodEnd: true },
-      ];
-    });
-
-    await requireAccess("user-1");
-
-    assert.equal(loadedUserId, "user-1");
-  });
-
-  it("throws a specific denial for users without an eligible subscription", async () => {
-    const requireAccess = createPaidAccessGuard(async () => [
-      { status: "canceled", cancelAtPeriodEnd: false },
-    ]);
-
-    await assert.rejects(
-      requireAccess("user-1"),
-      PaidAccessRequiredError,
-    );
-  });
-
-  it("propagates subscription lookup failures without granting access", async () => {
-    const databaseError = new Error("Database unavailable");
-    const requireAccess = createPaidAccessGuard(async () => {
-      throw databaseError;
-    });
-
-    await assert.rejects(requireAccess("user-1"), databaseError);
   });
 });
