@@ -6,8 +6,7 @@ import {
   hasManageableSubscription,
   isSubscriptionStale,
 } from "@/lib/access/entitlement-policy";
-import { stripe } from "@/lib/billing/stripe/client";
-import { syncStripeSubscription } from "@/lib/billing/stripe/subscriptions";
+import { stripeSubscriptionService } from "@/lib/billing/stripe/subscriptions";
 
 export const requirePaidAccess = createPaidAccessGuard(async (userId) => {
   const subscriptions = await loadSubscriptions(userId);
@@ -20,10 +19,12 @@ export const requirePaidAccess = createPaidAccessGuard(async (userId) => {
 
   if (staleEligibleSubscriptions.length > 0) {
     for (const subscription of staleEligibleSubscriptions) {
-      const current = await stripe.subscriptions.retrieve(subscription.id);
-      await syncStripeSubscription(current, {
+      await stripeSubscriptionService.retrieveAndSyncSubscription(
+        subscription.id,
+        {
         expectedLastEventCreatedAt: subscription.lastEventCreatedAt,
-      });
+        },
+      );
     }
 
     return loadSubscriptions(userId);

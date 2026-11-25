@@ -1,7 +1,6 @@
 import { and, asc, gt, lte } from "drizzle-orm";
 import { env } from "@/lib/env";
-import { stripe } from "@/lib/billing/stripe/client";
-import { syncStripeSubscription } from "@/lib/billing/stripe/subscriptions";
+import { stripeSubscriptionService } from "@/lib/billing/stripe/subscriptions";
 import { db } from "@/lib/db";
 import { getLogger } from "@/lib/logger";
 import { stripeSubscription } from "@/lib/db/schema";
@@ -73,14 +72,16 @@ export async function GET(request: Request) {
       cursor = subscription.id;
       checked += 1;
       try {
-        const current = await stripe.subscriptions.retrieve(
+        await stripeSubscriptionService.retrieveAndSyncSubscription(
           subscription.id,
-          {},
-          { timeout: stripeRequestTimeoutMs, maxNetworkRetries: 0 },
+          {
+            expectedLastEventCreatedAt: subscription.lastEventCreatedAt,
+            requestOptions: {
+              timeout: stripeRequestTimeoutMs,
+              maxNetworkRetries: 0,
+            },
+          },
         );
-        await syncStripeSubscription(current, {
-          expectedLastEventCreatedAt: subscription.lastEventCreatedAt,
-        });
         synced += 1;
       } catch (error) {
         failures.push(subscription.id);
