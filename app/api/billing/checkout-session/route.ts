@@ -4,7 +4,8 @@ import {
   requirePaidAccess,
 } from "@/lib/access/entitlement";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
-import { getOrCreateStripeCustomer, stripe } from "@/lib/billing/stripe/client";
+import { stripe } from "@/lib/billing/stripe/client";
+import { stripeCustomerService } from "@/lib/billing/stripe/customer";
 import { getCurrentCheckoutPlan } from "@/lib/billing/stripe/checkout";
 import {
   getCheckoutCancelUrl,
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
 
   const plan = await getCurrentCheckoutPlan();
 
-  const customerId = await getOrCreateStripeCustomer({
+  const customerId = await stripeCustomerService.getOrCreateStripeCustomer({
     id: session.user.id,
     email: session.user.email,
   });

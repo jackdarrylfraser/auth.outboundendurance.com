@@ -39,10 +39,29 @@ lib/auth/                          Auth configuration and session workflows
 
 ### 3. Add domain services around workflows
 
-- Start with billing workflows that coordinate multiple operations: checkout creation, portal sessions, subscription synchronization, and webhook processing.
-- Move orchestration and persistence/provider coordination out of infrastructure clients and into domain services.
-- Keep entitlement rules in policy modules; have an access service coordinate data access and any required Stripe freshness checks.
-- Reuse existing policy and handler factories instead of duplicating their logic.
+Build and verify services in dependency order. Keep service factories free of HTTP concerns, inject only the persistence/provider operations each workflow needs, and leave the existing route contracts unchanged until step 4.
+
+1. **Stripe customer service**
+   - Move customer lookup and idempotent customer creation/mapping out of `lib/billing/stripe/client.ts`.
+   - Keep customer-to-user verification rules in `customer-link.ts`; inject the database and Stripe customer operations.
+   - Reuse this service from checkout and portal workflows rather than duplicating mapping logic.
+2. **Subscription synchronization service**
+   - Move subscription retrieval coordination, customer mapping verification, and persistence from `subscriptions.ts` into an injectable service.
+   - Keep subscription value conversion and event-ordering rules pure and independently testable.
+   - Support both webhook event timestamps and freshness checks that guard against overwriting newer webhook state.
+3. **Checkout and billing portal services**
+   - Add separate services for checkout creation and portal-session creation.
+   - Checkout coordinates the current catalog plan, customer service, Stripe Checkout, and existing return-URL policies.
+   - Portal coordinates the customer mapping, configuration selection policy, and Stripe Billing Portal session.
+4. **Webhook processing service**
+   - Move event persistence, duplicate detection, subscription retrieval/synchronization, and processed-state updates into a service.
+   - Accept an already verified event; raw-body signature verification remains an HTTP-boundary responsibility for step 4.
+5. **Access service**
+   - Keep entitlement decisions in `entitlement-policy.ts`.
+   - Add a service that loads a user's subscriptions, refreshes stale eligible subscriptions through the synchronization service, then applies the existing paid-access guard.
+   - Keep the current access handler's injected behavior; route composition is handled in step 4.
+
+Add focused fake-dependency tests for each service, including customer idempotency/mapping, subscription event ordering and freshness, webhook duplicate handling, and access refresh behavior. Reuse existing policies and handler factories rather than duplicating their logic.
 
 ### 4. Thin route handlers
 

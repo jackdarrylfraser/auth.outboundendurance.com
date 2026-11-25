@@ -1,6 +1,7 @@
 import { getServerSession } from "@/lib/auth/session";
 import { env } from "@/lib/env";
-import { getStripeCustomerId, stripe } from "@/lib/billing/stripe/client";
+import { stripe } from "@/lib/billing/stripe/client";
+import { stripeCustomerService } from "@/lib/billing/stripe/customer";
 import { findStripeBillingPortalConfiguration } from "@/lib/billing/stripe/billing-portal";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
@@ -15,7 +16,9 @@ export async function POST() {
     );
   }
 
-  const customerId = await getStripeCustomerId(session.user.id);
+  const customerId = await stripeCustomerService.getStripeCustomerId(
+    session.user.id,
+  );
 
   if (!customerId) {
     return Response.json(
