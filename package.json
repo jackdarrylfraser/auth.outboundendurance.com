@@ -16,6 +16,7 @@
     "stripe:catalog:sync": "bun run scripts/stripe-catalog-sync.ts",
     "stripe:portal:configure": "bun run scripts/stripe-billing-portal-config.ts",
     "db:check": "bun run scripts/check-db.ts",
+    "db:seed": "bun run scripts/db-seed.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },

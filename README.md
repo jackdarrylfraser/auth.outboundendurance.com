@@ -43,6 +43,15 @@ Check the configured connection with:
 bun run db:check
 ```
 
+Seed an idempotent development user into a local `file:` database with:
+
+```sh
+bun run db:seed
+```
+
+The seed command refuses remote databases and does not create Stripe or email
+records. Apply migrations before running it.
+
 After changing `lib/db/schema.ts`, generate and apply migrations with:
 
 ```sh
