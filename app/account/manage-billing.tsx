@@ -68,7 +68,12 @@ function PaymentSetupForm({
     try {
       const result = await stripe.confirmSetup({
         elements,
-        confirmParams: { return_url: window.location.href },
+        confirmParams: {
+          return_url: new URL(
+            window.location.pathname,
+            window.location.origin,
+          ).href,
+        },
         redirect: "if_required",
       });
 
