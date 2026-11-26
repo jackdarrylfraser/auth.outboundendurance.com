@@ -2,7 +2,7 @@ import type Stripe from "stripe";
 import {
   selectStripeBillingPortalConfiguration,
   type StripeBillingPortalConfigurationCandidate,
-} from "@/lib/billing/stripe/billing-portal-policy";
+} from "@/lib/billing/stripe/billing-portal-selector";
 
 type StripeBillingPortalConfigurationOperations<
   T extends StripeBillingPortalConfigurationCandidate,
@@ -71,7 +71,7 @@ export function createStripeBillingPortalService(dependencies: {
     const configuration = await findConfiguration();
     if (!configuration) {
       throw new Error(
-        "No active Stripe Billing Portal configuration has the required features. Run `bun run stripe:portal:configure` with this environment's Stripe secret key.",
+        "No active Stripe Billing Portal configuration has the required features. Provision it with `bun run stripe:portal:configure` before serving billing traffic.",
       );
     }
 

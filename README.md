@@ -164,7 +164,8 @@ The consuming app should repeat its server-to-server access check on arrival.
 Return URLs are limited to the auth service and, in production,
 `outboundendurance.com` and its HTTPS subdomains.
 
-The app manages its Customer Portal configuration through the Stripe API.
+The Customer Portal configuration is provisioned through the Stripe API using
+the seed values in `scripts/stripe-billing-portal-seed.ts`.
 `bun run build` only builds the app. Configure the deployment to run
 `bun run deploy:prepare` as its pre-deploy or release command, followed by
 `bun run build`:
@@ -173,23 +174,21 @@ The app manages its Customer Portal configuration through the Stripe API.
 bun run deploy:prepare
 ```
 
-This applies migrations and syncs the Billing Portal configuration. Provide the
-deployment's database credentials and Stripe secret key to this step, and run
-it before the new app version receives traffic. Provision the Stripe catalog
-separately with `bun run db:migrate && bun run stripe:catalog:sync`; use a
-test-mode key for test environments and a live-mode key for production. Stripe
-keeps products, prices, and portal configurations separate by mode.
+This applies database migrations. Provision the Stripe catalog and Billing
+Portal configuration separately with `bun run stripe:catalog:sync` and
+`bun run stripe:portal:configure` when setting up an environment or intentionally
+changing their seed values. Use a test-mode key for test environments and a
+live-mode key for production. Stripe keeps products, prices, and portal
+configurations separate by mode.
 
 If the deployment platform expects one command for the whole sequence, use
-`bun run deploy`. It prepares the database and Stripe catalog before building
-the app.
+`bun run deploy`. It prepares the database before building the app.
 
-The Billing Portal sync finds a configuration with the required features and
-updates it, or creates one if none exists. It enables payment method updates,
-invoice history, and cancellation at the period end; it disables subscription
-updates and pauses. No configuration ID needs to be added to the app
-environment. `bun run stripe:portal:configure` can also be run on its own when
-the Billing Portal configuration needs to be created or updated.
+The Billing Portal provisioning command finds a configuration with the
+required features and updates it, or creates one if none exists. It enables
+payment method updates, invoice history, and cancellation at the period end; it
+disables subscription updates and pauses. No configuration ID needs to be added
+to the app environment.
 
 Authenticated customers with a Stripe customer mapping can open the portal from
 `/manage` to update payment information, view invoices, or cancel their

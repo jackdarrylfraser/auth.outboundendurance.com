@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  getStripeBillingPortalConfigurationFeatures,
   STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER,
   type StripeBillingPortalConfigurationCandidate,
-} from "@/lib/billing/stripe/billing-portal-policy";
+} from "@/lib/billing/stripe/billing-portal-selector";
 import { createStripeBillingPortalService } from "@/lib/billing/stripe/billing-portal-service";
 
 function configuration(
@@ -18,7 +17,18 @@ function configuration(
     metadata: managed
       ? { managed_by: STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER }
       : null,
-    features: getStripeBillingPortalConfigurationFeatures(["feedback_1"]),
+    features: {
+      customer_update: { enabled: false },
+      invoice_history: { enabled: true },
+      payment_method_update: { enabled: true },
+      subscription_cancel: {
+        enabled: true,
+        mode: "at_period_end",
+        proration_behavior: "none",
+      },
+      subscription_pause: { enabled: false },
+      subscription_update: { enabled: false },
+    },
   };
 }
 

@@ -5,7 +5,7 @@
   "scripts": {
     "build": "next build",
     "deploy": "bun run deploy:prepare && bun run build",
-    "deploy:prepare": "bun run db:migrate && bun run stripe:portal:configure",
+    "deploy:prepare": "bun run db:migrate",
     "sync:env:preview": "bun --env-file=.env.preview run scripts/vercel-env-upload.ts --environment preview",
     "sync:env:prod": "bun --env-file=.env.production run scripts/vercel-env-upload.ts --environment production",
     "lint": "eslint",

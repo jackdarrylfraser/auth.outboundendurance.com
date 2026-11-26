@@ -4,9 +4,9 @@ import { infrastructure } from "@/lib/infrastructure/runtime";
 import {
   getStripeBillingPortalConfigurationFeatures,
   STRIPE_CANCELLATION_FEEDBACK_OPTIONS,
-  STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER,
   STRIPE_BILLING_PORTAL_CONFIGURATION_NAME,
-} from "@/lib/billing/stripe/billing-portal-policy";
+} from "./stripe-billing-portal-seed";
+import { STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER } from "@/lib/billing/stripe/billing-portal-selector";
 import { getStripeLivemode } from "@/lib/billing/stripe/mode";
 
 const { env, stripe } = infrastructure;
