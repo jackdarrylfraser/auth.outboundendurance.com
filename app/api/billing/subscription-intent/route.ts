@@ -1,10 +1,9 @@
 import { getServerSession } from "@/lib/auth/session";
-import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
-import { requirePaidAccess } from "@/lib/access/entitlement";
 import { stripeCustomerService } from "@/lib/billing/stripe/customer";
 import { getSubscriptionPaymentClientSecret } from "@/lib/billing/stripe/payment-element";
 import { createStripePaymentElementService } from "@/lib/billing/stripe/payment-element";
 import { getCurrentSubscriptionPlan } from "@/lib/billing/stripe/subscription-catalog";
+import { stripeSubscriptionService } from "@/lib/billing/stripe/subscriptions";
 import { infrastructure } from "@/lib/infrastructure/server";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
@@ -19,13 +18,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function isPaidAccessRequired(error: unknown): boolean {
-  if (error instanceof PaidAccessRequiredError) {
-    return false;
-  }
-  throw error;
-}
-
 export async function POST(request: Request) {
   try {
     const session = await getServerSession();
@@ -33,17 +25,6 @@ export async function POST(request: Request) {
       return Response.json(
         { error: "Unauthorized" },
         { status: 401, headers: noStoreHeaders },
-      );
-    }
-
-    const hasPaidAccess = await requirePaidAccess(session.user.id).then(
-      () => true,
-      isPaidAccessRequired,
-    );
-    if (hasPaidAccess) {
-      return Response.json(
-        { error: "This account already has paid access." },
-        { status: 409, headers: noStoreHeaders },
       );
     }
 
@@ -80,6 +61,12 @@ export async function POST(request: Request) {
         { status: 409, headers: noStoreHeaders },
       );
     }
+
+    await Promise.all(
+      existingSubscriptions.data.map((subscription) =>
+        stripeSubscriptionService.syncSubscription(subscription),
+      ),
+    );
 
     const existingSubscription = existingSubscriptions.data.find(
       (subscription) =>

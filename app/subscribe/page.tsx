@@ -2,10 +2,9 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
-import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
 import {
+  hasPaidStripeSubscription,
   hasManageableStripeSubscription,
-  requirePaidAccess,
 } from "@/lib/access/entitlement";
 import { getAllowedReturnUrl } from "@/lib/auth/return-url";
 import { getServerSession } from "@/lib/auth/session";
@@ -66,34 +65,30 @@ const SubscribeContent = withConnection(async function SubscribeContent({
     redirect(`${loginUrl.pathname}${loginUrl.search}`);
   }
 
-  const showManageSubscription = await hasManageableStripeSubscription(
-    session.user.id,
-  );
+  const [showManageSubscription, hasPaidAccess] = await Promise.all([
+    hasManageableStripeSubscription(session.user.id),
+    hasPaidStripeSubscription(session.user.id),
+  ]);
 
-  try {
-    await requirePaidAccess(session.user.id);
+  if (hasPaidAccess) {
     if (returnTo) {
       redirect(returnTo);
     }
     if (showManageSubscription) {
       redirect("/manage");
     }
-  } catch (error) {
-    if (!(error instanceof PaidAccessRequiredError)) {
-      throw error;
-    }
+  }
 
-    if (
-      returnTo &&
-      new URL(returnTo).pathname === "/billing/return" &&
-      new URL(returnTo).origin === new URL(env.BASE_URL).origin
-    ) {
-      redirect(returnTo);
-    }
+  if (
+    returnTo &&
+    new URL(returnTo).pathname === "/billing/return" &&
+    new URL(returnTo).origin === new URL(env.BASE_URL).origin
+  ) {
+    redirect(returnTo);
+  }
 
-    if (showManageSubscription) {
-      redirect("/manage");
-    }
+  if (showManageSubscription) {
+    redirect("/manage");
   }
 
   return (

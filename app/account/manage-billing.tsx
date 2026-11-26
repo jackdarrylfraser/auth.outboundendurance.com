@@ -125,6 +125,7 @@ export function ManageBilling({ data }: { data: ManageBillingData }) {
   const [isConfirmingCancellation, setIsConfirmingCancellation] =
     useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
   const [hasScheduledCancellation, setHasScheduledCancellation] = useState(
     data.subscription.cancelAtPeriodEnd,
   );
@@ -285,6 +286,49 @@ export function ManageBilling({ data }: { data: ManageBillingData }) {
     }
   }
 
+  async function resumeSubscription() {
+    setIsResuming(true);
+    setCancellationError("");
+
+    try {
+      const response = await fetch("/api/billing/subscription/resume", {
+        method: "POST",
+        cache: "no-store",
+      });
+      const body: unknown = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          getErrorMessage(
+            body,
+            "We couldn't resume your subscription. Please try again.",
+          ),
+        );
+      }
+      if (
+        !body ||
+        typeof body !== "object" ||
+        !("cancelAtPeriodEnd" in body) ||
+        body.cancelAtPeriodEnd !== false ||
+        !("currentPeriodEnd" in body) ||
+        typeof body.currentPeriodEnd !== "string"
+      ) {
+        throw new Error("The subscription resume response was invalid.");
+      }
+
+      setHasScheduledCancellation(false);
+      setCancellationDate(body.currentPeriodEnd);
+      router.refresh();
+    } catch (error) {
+      setCancellationError(
+        error instanceof Error
+          ? error.message
+          : "We couldn't resume your subscription. Please try again.",
+      );
+    } finally {
+      setIsResuming(false);
+    }
+  }
+
   const endDate = formatDate(cancellationDate);
 
   return (
@@ -302,10 +346,24 @@ export function ManageBilling({ data }: { data: ManageBillingData }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Status: <span className="capitalize">{data.subscription.status.replaceAll("_", " ")}</span>
         </p>
-        {hasScheduledCancellation ? (
+        {data.subscription.status === "canceled" ? (
           <p className="mt-2 text-sm text-muted-foreground">
-            Your subscription is scheduled to end on {endDate}.
+            Your subscription has been canceled.
           </p>
+        ) : hasScheduledCancellation ? (
+          <>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Your subscription is scheduled to end on {endDate}.
+            </p>
+            <button
+              className="mt-5 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-background disabled:cursor-wait disabled:opacity-60"
+              disabled={isResuming}
+              onClick={() => void resumeSubscription()}
+              type="button"
+            >
+              {isResuming ? "Resuming..." : "Resume subscription"}
+            </button>
+          </>
         ) : (
           <>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -314,13 +372,15 @@ export function ManageBilling({ data }: { data: ManageBillingData }) {
                 ? `Your next renewal is ${endDate}.`
                 : `Your current billing period ends ${endDate}.`}
             </p>
-            <button
-              className="mt-5 rounded-lg border border-danger-border px-4 py-2 text-sm font-semibold text-danger-foreground hover:bg-danger-surface"
-              onClick={() => setIsConfirmingCancellation(true)}
-              type="button"
-            >
-              Cancel subscription
-            </button>
+            {data.subscription.status !== "canceled" ? (
+              <button
+                className="mt-5 rounded-lg border border-danger-border px-4 py-2 text-sm font-semibold text-danger-foreground hover:bg-danger-surface"
+                onClick={() => setIsConfirmingCancellation(true)}
+                type="button"
+              >
+                Cancel subscription
+              </button>
+            ) : null}
             {isConfirmingCancellation ? (
               <div className="mt-4 rounded-lg border border-danger-border bg-danger-surface p-4">
                 <p className="text-sm text-danger-foreground">

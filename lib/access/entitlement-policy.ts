@@ -4,7 +4,6 @@ export type SubscriptionEntitlement = {
 
 export type SubscriptionManagementState = {
   status: string;
-  currentPeriodEnd: Date;
 };
 
 export class PaidAccessRequiredError extends Error {
@@ -24,22 +23,8 @@ export function hasPaidEntitlement(
 
 export function hasManageableSubscription(
   subscriptions: readonly SubscriptionManagementState[],
-  now: Date,
 ): boolean {
-  return subscriptions.some(({ status, currentPeriodEnd }) => {
-    if (
-      status === "active" ||
-      status === "trialing" ||
-      status === "unpaid" ||
-      status === "past_due" ||
-      status === "paused"
-    ) {
-      return true;
-    }
-
-    return (
-      status === "canceled" &&
-      currentPeriodEnd.getTime() > now.getTime()
-    );
-  });
+  return subscriptions.some(({ status }) =>
+    ["active", "trialing", "unpaid", "past_due", "paused"].includes(status),
+  );
 }

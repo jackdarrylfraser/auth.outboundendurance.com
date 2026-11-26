@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
-import { hasManageableStripeSubscription } from "@/lib/access/entitlement";
 import { getServerSession } from "@/lib/auth/session";
 import { stripeManageService } from "@/lib/billing/stripe/manage";
 import { withConnection } from "@/lib/next/with-connection";
@@ -42,9 +41,6 @@ const ManageContent = withConnection(async function ManageContent() {
     redirect(`${loginUrl.pathname}${loginUrl.search}`);
   }
 
-  if (!(await hasManageableStripeSubscription(session.user.id))) {
-    redirect("/subscribe");
-  }
   const billingData = await stripeManageService.getManagePageData(
     session.user.id,
   );
@@ -71,7 +67,15 @@ const ManageContent = withConnection(async function ManageContent() {
           Update your payment method, review payment history, or cancel your
           subscription.
         </p>
-        <ManageBilling data={billingData} />
+        <ManageBilling
+          data={billingData}
+          key={[
+            billingData.subscription.status,
+            billingData.subscription.cancelAtPeriodEnd,
+            billingData.subscription.cancelAt,
+            billingData.subscription.currentPeriodEnd,
+          ].join(":")}
+        />
         <LogoutButton />
       </section>
     </main>

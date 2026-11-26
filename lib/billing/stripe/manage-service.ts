@@ -129,16 +129,8 @@ function getSubscriptionPeriodEnd(subscription: Subscription): number {
 
 function isManageableSubscription(
   subscription: Subscription,
-  now: Date,
 ): boolean {
-  if (manageableStatuses.has(subscription.status)) {
-    return true;
-  }
-
-  return (
-    subscription.status === "canceled" &&
-    getSubscriptionPeriodEnd(subscription) * 1000 > now.getTime()
-  );
+  return manageableStatuses.has(subscription.status);
 }
 
 function getPaymentMethodId(
@@ -181,10 +173,9 @@ export function createStripeManageService(dependencies: {
 
   function getCurrentSubscription(
     subscriptions: Subscription[],
-    now = new Date(),
   ): Subscription | null {
     const manageable = subscriptions.filter((subscription) =>
-      isManageableSubscription(subscription, now),
+      isManageableSubscription(subscription),
     );
     if (manageable.length > 1) {
       throw new Error(
@@ -207,6 +198,12 @@ export function createStripeManageService(dependencies: {
       listCustomerSubscriptions(customerId),
       dependencies.stripe.invoices.list({ customer: customerId, limit: 10 }),
     ]);
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        dependencies.subscriptions.syncSubscription(subscription),
+      ),
+    );
 
     if (customer.deleted) {
       throw new Error(`Stripe customer ${customerId} has been deleted.`);
@@ -356,11 +353,35 @@ export function createStripeManageService(dependencies: {
     return updatedSubscription;
   }
 
+  async function resumeSubscription(userId: string) {
+    const customerId = await getCustomerId(userId);
+    if (!customerId) {
+      return null;
+    }
+
+    const subscriptions = await listCustomerSubscriptions(customerId);
+    const subscription = getCurrentSubscription(subscriptions);
+    if (!subscription) {
+      return null;
+    }
+    if (!subscription.cancel_at_period_end) {
+      return subscription;
+    }
+
+    const updatedSubscription = await dependencies.stripe.subscriptions.update(
+      subscription.id,
+      { cancel_at_period_end: false },
+    );
+    await dependencies.subscriptions.syncSubscription(updatedSubscription);
+    return updatedSubscription;
+  }
+
   return {
     getManagePageData,
     createPaymentMethodSetup,
     confirmPaymentMethodSetup,
     cancelSubscription,
+    resumeSubscription,
   };
 }
 

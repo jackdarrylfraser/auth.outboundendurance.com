@@ -7,8 +7,6 @@ import {
 
 describe("paid entitlement policy", () => {
   it("offers subscription management for ongoing subscriptions", () => {
-    const now = new Date("2026-01-02T00:00:00.000Z");
-
     for (const status of [
       "active",
       "trialing",
@@ -18,13 +16,7 @@ describe("paid entitlement policy", () => {
     ]) {
       assert.equal(
         hasManageableSubscription(
-          [
-            {
-              status,
-              currentPeriodEnd: new Date("2026-01-01T00:00:00.000Z"),
-            },
-          ],
-          now,
+          [{ status }],
         ),
         true,
         `${status} must offer subscription management`,
@@ -32,61 +24,22 @@ describe("paid entitlement policy", () => {
     }
   });
 
-  it("offers management for canceled subscriptions only through the paid period", () => {
-    const now = new Date("2026-01-02T00:00:00.000Z");
-
+  it("does not offer management for canceled subscriptions", () => {
     assert.equal(
-      hasManageableSubscription(
-        [
-          {
-            status: "canceled",
-            currentPeriodEnd: new Date("2026-01-03T00:00:00.000Z"),
-          },
-        ],
-        now,
-      ),
-      true,
-    );
-    assert.equal(
-      hasManageableSubscription(
-        [{ status: "canceled", currentPeriodEnd: now }],
-        now,
-      ),
+      hasManageableSubscription([{ status: "canceled" }]),
       false,
     );
   });
 
   it("offers checkout for users without an ongoing or paid-through subscription", () => {
-    const now = new Date("2026-01-02T00:00:00.000Z");
-
-    assert.equal(hasManageableSubscription([], now), false);
+    assert.equal(hasManageableSubscription([]), false);
     for (const status of ["incomplete", "incomplete_expired"]) {
       assert.equal(
-        hasManageableSubscription(
-          [
-            {
-              status,
-              currentPeriodEnd: new Date("2026-01-03T00:00:00.000Z"),
-            },
-          ],
-          now,
-        ),
+        hasManageableSubscription([{ status }]),
         false,
         `${status} must not offer subscription management`,
       );
     }
-    assert.equal(
-      hasManageableSubscription(
-        [
-          {
-            status: "canceled",
-            currentPeriodEnd: new Date("2026-01-01T00:00:00.000Z"),
-          },
-        ],
-        now,
-      ),
-      false,
-    );
   });
 
   it("grants access for active and trialing subscriptions", () => {

@@ -156,6 +156,14 @@ describe("Stripe manage service", () => {
     });
   });
 
+  it("does not keep a canceled Stripe subscription on the manage page", async () => {
+    const { service } = createService({
+      subscriptions: [{ ...activeSubscription, status: "canceled" }],
+    });
+
+    assert.equal(await service.getManagePageData("user_123"), null);
+  });
+
   it("creates an off-session card SetupIntent for the mapped customer", async () => {
     const { service, getSetupIntentCreateParams } = createService();
 
@@ -226,6 +234,28 @@ describe("Stripe manage service", () => {
     const subscription = await service.cancelSubscription("user_123");
 
     assert.equal(subscription?.cancel_at_period_end, true);
+    assert.deepEqual(calls, []);
+  });
+
+  it("resumes a subscription scheduled to cancel and synchronizes its state", async () => {
+    const { service, calls } = createService({
+      subscriptions: [
+        { ...activeSubscription, cancel_at_period_end: true },
+      ],
+    });
+
+    const subscription = await service.resumeSubscription("user_123");
+
+    assert.equal(subscription?.cancel_at_period_end, false);
+    assert.deepEqual(calls, ["subscription-update:sub_active", "sync-subscription"]);
+  });
+
+  it("does not submit a duplicate resume update", async () => {
+    const { service, calls } = createService();
+
+    const subscription = await service.resumeSubscription("user_123");
+
+    assert.equal(subscription?.cancel_at_period_end, false);
     assert.deepEqual(calls, []);
   });
 });
