@@ -4,10 +4,9 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "deploy": "bun run deploy:prepare && bun run build",
-    "deploy:prepare": "bun run db:migrate",
     "sync:env:preview": "bun --env-file=.env.preview run scripts/vercel-env-upload.ts --environment preview",
     "sync:env:prod": "bun --env-file=.env.production run scripts/vercel-env-upload.ts --environment production",
+    "provision:preview": "bun run sync:env:preview && bun --env-file=.env.preview run db:migrate && bun --env-file=.env.preview run db:seed && bun --env-file=.env.preview run stripe:catalog:sync && bun --env-file=.env.preview run stripe:portal:configure",
     "lint": "eslint",
     "test": "bun test",
     "stripe:subscriptions:reconcile": "bun run scripts/stripe-subscriptions-reconcile.ts",

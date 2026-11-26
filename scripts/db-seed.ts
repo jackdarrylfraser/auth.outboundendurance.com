@@ -11,12 +11,6 @@ const userService = createUserService({ database: infrastructure.db });
 const roleService = createRoleService({ database: infrastructure.db });
 
 async function seed(): Promise<void> {
-  if (!infrastructure.env.TURSO_DATABASE_URL.startsWith("file:")) {
-    throw new Error(
-      "Database seeding is restricted to local file databases. Set TURSO_DATABASE_URL to a file: URL.",
-    );
-  }
-
   const { user: savedUser, created } =
     await userService.getOrCreateUser({
       name: seedUser.name,

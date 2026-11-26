@@ -45,14 +45,16 @@ Check the configured connection with:
 bun run db:check
 ```
 
-Seed an idempotent development admin user into a local `file:` database with:
+Seed an idempotent development admin user into the database selected by
+`TURSO_DATABASE_URL` with:
 
 ```sh
 bun run db:seed
 ```
 
-The seed command refuses remote databases and does not create Stripe or email
-records. Apply migrations before running it.
+This assigns the `admin` role to `seed.user@example.test`, so verify that the
+configured database is the intended environment before running it. The seed
+does not create Stripe or email records. Apply migrations before running it.
 
 After changing `lib/db/schema.ts`, generate and apply migrations with:
 
@@ -68,8 +70,8 @@ as the application.
 ## Vercel environment variables
 
 Create `.env.production` and `.env.preview` in the repository root.
-Use separate auth secrets, Stripe keys, and Turso databases; the build command
-runs migrations and Stripe setup for the selected Vercel environment. These
+Use separate auth secrets, Stripe keys, and Turso databases. The preview
+provisioning command runs the complete setup for Preview. These
 files are ignored by Git. Do not commit them or copy Production credentials into
 Preview.
 Set `LOG_LEVEL` in both files before running the environment uploader; use
@@ -90,6 +92,17 @@ bun run sync:env:preview
 bun run sync:env:prod -- --check
 bun run sync:env:prod
 ```
+
+Provision the Preview environment with:
+
+```sh
+bun run provision:preview
+```
+
+This syncs Preview variables and the Stripe webhook, applies database
+migrations, seeds the configured database, syncs the Stripe catalog, and
+configures the Billing Portal. The database and Stripe commands all load
+`.env.preview`; review that file before running the command.
 
 The uploader compares the selected file and `.env.example` with Node's built-in
 `.env` parser; it fails before making changes unless the files have exactly the
