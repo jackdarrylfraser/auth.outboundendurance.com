@@ -6,12 +6,11 @@
     "build": "next build",
     "sync:env:preview": "bun --env-file=.env.preview run scripts/vercel-env-upload.ts --environment preview",
     "sync:env:prod": "bun --env-file=.env.production run scripts/vercel-env-upload.ts --environment production",
-    "provision:preview": "bun run sync:env:preview && bun --env-file=.env.preview run db:migrate && bun --env-file=.env.preview run db:seed && bun --env-file=.env.preview run stripe:catalog:sync && bun --env-file=.env.preview run stripe:portal:configure",
+    "provision:preview": "bun run sync:env:preview && bun --env-file=.env.preview run db:migrate && bun --env-file=.env.preview run db:seed && bun --env-file=.env.preview run stripe:catalog:sync",
     "lint": "eslint",
     "test": "bun test",
     "stripe:subscriptions:reconcile": "bun run scripts/stripe-subscriptions-reconcile.ts",
     "stripe:catalog:sync": "bun run scripts/stripe-catalog-sync.ts",
-    "stripe:portal:configure": "bun run scripts/stripe-billing-portal-config.ts",
     "db:seed": "bun run scripts/db-seed.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun run scripts/db-migrate.ts"

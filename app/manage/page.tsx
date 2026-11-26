@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
 import { hasManageableStripeSubscription } from "@/lib/access/entitlement";
 import { getServerSession } from "@/lib/auth/session";
+import { stripeManageService } from "@/lib/billing/stripe/manage";
 import { withConnection } from "@/lib/next/with-connection";
-import { BillingPortalButton } from "@/app/account/billing-portal-button";
+import { ManageBilling } from "@/app/account/manage-billing";
 import { LogoutButton } from "@/app/account/logout-button";
 
 export const metadata: Metadata = {
@@ -44,6 +45,12 @@ const ManageContent = withConnection(async function ManageContent() {
   if (!(await hasManageableStripeSubscription(session.user.id))) {
     redirect("/subscribe");
   }
+  const billingData = await stripeManageService.getManagePageData(
+    session.user.id,
+  );
+  if (!billingData) {
+    redirect("/subscribe");
+  }
 
   return (
     <main className="flex flex-1 justify-center px-6 py-16">
@@ -61,12 +68,10 @@ const ManageContent = withConnection(async function ManageContent() {
           Manage your subscription
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Update payment information, view invoices, or cancel your subscription
-          through Stripe.
+          Update your payment method, review payment history, or cancel your
+          subscription.
         </p>
-        <div className="mt-6">
-          <BillingPortalButton />
-        </div>
+        <ManageBilling data={billingData} />
         <LogoutButton />
       </section>
     </main>

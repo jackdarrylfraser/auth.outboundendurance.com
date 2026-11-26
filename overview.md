@@ -6,8 +6,8 @@
 - **Shared sessions:** A secure parent-domain cookie shares the session across `auth.domain.tld`, `domain.tld`, and `member.domain.tld`.
 - **Access:** Stripe statuses `active` and `trialing` grant paid access. `past_due` and all other statuses do not.
 - **Cancellation:** Cancellation takes effect at period end. Access continues while the subscription remains `active` or `trialing`.
-- **No eligible plan:** Show the current plan and an embedded Stripe Payment Element. Existing customers, including those who are `past_due`, can open the billing portal to update payment information.
-- **Eligible plan:** Show the option to manage, change, or cancel the plan through Stripe's hosted customer portal.
+- **No eligible plan:** Show the current plan and an embedded Stripe Payment Element. Existing customers, including those who are `past_due`, can update payment information on the self-hosted `/manage` page.
+- **Eligible plan:** Show subscription status, payment method, and recent invoices on `/manage`; allow payment updates with Stripe Elements and cancellation at period end. Invoice history is read from Stripe and is not persisted in the application database.
 
 A user can authenticate without an eligible subscription, but can access only billing, not paid application features.
 
@@ -29,7 +29,7 @@ Each estimate covers the **total changed lines**, including tests and configurat
 | 8 | Implement entitlement policy | 80-150 | A tested server-side guard permits only `active` and `trialing`; scheduled cancellation preserves access until the status changes. |
 | 9 | Set up Stripe customers | 100-180 | Authenticated users get a mapped Stripe customer for Payment Element subscription creation. |
 | 10 | Display plans | 100-180 | `/subscribe` shows the current plan and embedded Payment Element to users without an eligible plan. |
-| 11 | Add the billing portal | 80-150 | Existing customers manage subscriptions at `/manage`, including updating payment information and cancellation at period end. |
+| 11 | Add self-hosted subscription management | 150-200 | Existing customers manage payment methods and schedule cancellation at `/manage`; recent invoice history is read directly from Stripe. |
 | 12 | Verify Stripe webhooks | 100-180 | `/api/stripe/webhook` verifies raw-body signatures and records events for idempotent processing. |
 | 13 | Synchronize subscriptions | 120-200 | Subscription events update state; duplicates, delayed events, ordering, and unlinked purchases are handled. |
 | 14 | Handle billing returns | 80-150 | `/billing/return` shows processing or confirmed state without granting access based on the redirect alone. |

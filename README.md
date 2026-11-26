@@ -100,8 +100,8 @@ bun run provision:preview
 ```
 
 This syncs Preview variables and the Stripe webhook, applies database
-migrations, seeds the configured database, syncs the Stripe catalog, and
-configures the Billing Portal. The database and Stripe commands all load
+migrations, seeds the configured database, and syncs the Stripe catalog. The
+database and Stripe commands all load
 `.env.preview`; review that file before running the command.
 
 The uploader compares the selected file and `.env.example` with Node's built-in
@@ -165,8 +165,11 @@ not through the application server. The webhook remains authoritative for
 subscription state and paid access. `/billing/return` polls the signed-in user's
 synchronized entitlement and redirects to an allowlisted `returnTo` only after
 access is confirmed. Existing customers with a manageable subscription are
-sent to `/manage`, which opens the Stripe Billing Portal. `/account` remains a
-compatibility redirect to `/subscribe`.
+sent to `/manage`, where they can view subscription status, payment details,
+and recent invoices; update payment details with Stripe Elements; or schedule
+cancellation at period end. Invoice history is loaded directly from Stripe and
+is not stored in the application database. `/account` remains a compatibility
+redirect to `/subscribe`.
 
 Consuming apps should make the access check server-to-server, then redirect the
 user's browser to the auth site with the originally requested page in its
@@ -177,8 +180,6 @@ The consuming app should repeat its server-to-server access check on arrival.
 Return URLs are limited to the auth service and, in production,
 `outboundendurance.com` and its HTTPS subdomains.
 
-The Customer Portal configuration is provisioned through the Stripe API using
-the seed values in `scripts/stripe-billing-portal-seed.ts`.
 `bun run build` only builds the app. Configure the deployment to run
 `bun run deploy:prepare` as its pre-deploy or release command, followed by
 `bun run build`:
@@ -187,28 +188,19 @@ the seed values in `scripts/stripe-billing-portal-seed.ts`.
 bun run deploy:prepare
 ```
 
-This applies database migrations. Provision the Stripe catalog and Billing
-Portal configuration separately with `bun run stripe:catalog:sync` and
-`bun run stripe:portal:configure` when setting up an environment or intentionally
-changing their seed values. Use a test-mode key for test environments and a
-live-mode key for production. Stripe keeps products, prices, and portal
-configurations separate by mode.
+This applies database migrations. Provision the Stripe catalog separately
+with `bun run stripe:catalog:sync` when setting up an environment or
+intentionally changing its seed values. Use a test-mode key for test
+environments and a live-mode key for production. Stripe keeps products and
+prices separate by mode.
 
 If the deployment platform expects one command for the whole sequence, use
 `bun run deploy`. It prepares the database before building the app.
 
-The Billing Portal provisioning command finds a configuration with the
-required features and updates it, or creates one if none exists. It enables
-payment method updates, invoice history, and cancellation at the period end; it
-disables subscription updates and pauses. No configuration ID needs to be added
-to the app environment.
-
-Authenticated customers with a Stripe customer mapping can open the portal from
-`/manage` to update payment information, view invoices, or cancel their
-subscription. Portal sessions find a configuration by its required feature
-settings and return to `/manage`; ambiguous matches fail explicitly. A
-scheduled cancellation remains `active` until the paid period ends, so
-entitlement continues during that period; access ends when Stripe reports the
+Authenticated customers with a Stripe customer mapping can manage their
+subscription from `/manage`. Payment method updates are confirmed with Stripe
+Elements and applied to the customer and its subscriptions. Cancellation is
+scheduled at the period end; access continues until Stripe reports the
 subscription as canceled.
 
 ## Stripe webhooks

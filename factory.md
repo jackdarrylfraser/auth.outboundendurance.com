@@ -50,10 +50,10 @@ Build and verify services in dependency order. Keep service factories free of HT
    - Move subscription retrieval coordination, customer mapping verification, and persistence from `subscriptions.ts` into an injectable service.
    - Keep subscription value conversion and event-ordering rules pure and independently testable.
    - Support both webhook event timestamps and freshness checks that guard against overwriting newer webhook state.
-3. **Payment Element and billing portal services**
-   - Add separate services for subscription payment setup and portal-session creation.
+3. **Payment Element and account billing services**
+   - Add separate services for subscription payment setup and self-hosted subscription management.
    - Payment setup coordinates the current catalog plan, customer service, and an incomplete Stripe subscription; payment confirmation remains in the browser through Stripe.js.
-   - Portal coordinates the customer mapping, configuration selection policy, and Stripe Billing Portal session.
+   - Account management retrieves the customer's subscription, default payment method, and invoices from Stripe; payment updates use SetupIntents and cancellation is scheduled at period end.
 4. **Webhook processing service**
    - Move event persistence, duplicate detection, subscription retrieval/synchronization, and processed-state updates into a service.
    - Accept an already verified event; raw-body signature verification remains an HTTP-boundary responsibility for step 4.
@@ -75,7 +75,7 @@ Migrate each route in the same order: compose its service, leave HTTP-specific w
    - Leave request parsing and validation, authentication boundaries, response construction, and status-code decisions in the route.
    - Keep business orchestration in the service, with no `Request`, `Response`, or HTTP status handling in service code.
 3. **Migrate routes by workflow**
-   - Start with the access endpoint, then migrate checkout and billing portal routes, and then the Stripe webhook route.
+   - Start with the access endpoint, then migrate checkout and account management routes, and then the Stripe webhook route.
    - For each route, replace orchestration with a service call while preserving its existing request and response contract and error behavior.
 4. **Preserve webhook verification**
    - Read the raw request body and verify the Stripe signature in the webhook route.
@@ -92,7 +92,7 @@ Treat each entry point as a small vertical slice: migrate its composition and se
    - Use the access endpoint as the reference migration because its handler already supports injected dependencies.
    - Keep `lib/access/handler.ts` and its request/response behavior unchanged; wire its session and access dependencies through the shared server composition.
 2. **Migrate app billing workflows**
-   - Migrate checkout, billing portal, and webhook entry points individually, following step 4's route boundaries.
+   - Migrate checkout, account management, and webhook entry points individually, following step 4's route boundaries.
    - For each workflow, move callers to the service before removing or bypassing the previous orchestration path.
    - Preserve route contracts, authentication behavior, and error handling throughout each migration.
 3. **Migrate operational entry points**
