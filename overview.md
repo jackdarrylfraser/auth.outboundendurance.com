@@ -6,12 +6,12 @@
 - **Shared sessions:** A secure parent-domain cookie shares the session across `auth.domain.tld`, `domain.tld`, and `member.domain.tld`.
 - **Access:** Stripe statuses `active` and `trialing` grant paid access. `past_due` and all other statuses do not.
 - **Cancellation:** Cancellation takes effect at period end. Access continues while the subscription remains `active` or `trialing`.
-- **No eligible plan:** Show Stripe's pricing table. Existing customers, including those who are `past_due`, can also open the billing portal to update payment information.
+- **No eligible plan:** Show the current plan and an embedded Stripe Payment Element. Existing customers, including those who are `past_due`, can open the billing portal to update payment information.
 - **Eligible plan:** Show the option to manage, change, or cancel the plan through Stripe's hosted customer portal.
 
 A user can authenticate without an eligible subscription, but can access only billing, not paid application features.
 
-The Stripe Pricing Table success URL must return to `/billing/return`. The return page uses the signed-in user's synchronized subscription state; redirect parameters do not establish payment or grant access.
+The Payment Element confirms payment on `/subscribe`; Stripe authentication may redirect back to `/billing/return`. The return page uses the signed-in user's synchronized subscription state; redirect parameters do not establish payment or grant access.
 
 ## Working steps
 
@@ -27,11 +27,11 @@ Each estimate covers the **total changed lines**, including tests and configurat
 | 6 | Add OTP rate limiting | 100-180 | Upstash limits requests and verification attempts; failure behavior is tested. |
 | 7 | Add billing data | 100-180 | Migrations support user-to-customer mappings, subscription state, and processed webhook events. |
 | 8 | Implement entitlement policy | 80-150 | A tested server-side guard permits only `active` and `trialing`; scheduled cancellation preserves access until the status changes. |
-| 9 | Set up Stripe customers | 100-180 | Authenticated users get a mapped Stripe customer and server-created pricing-table Customer Session. |
-| 10 | Display plans | 100-180 | `/subscribe` shows the current plan and hosted Checkout to users without an eligible plan, including `past_due` users. |
+| 9 | Set up Stripe customers | 100-180 | Authenticated users get a mapped Stripe customer for Payment Element subscription creation. |
+| 10 | Display plans | 100-180 | `/subscribe` shows the current plan and embedded Payment Element to users without an eligible plan. |
 | 11 | Add the billing portal | 80-150 | Existing customers manage subscriptions at `/manage`, including updating payment information and cancellation at period end. |
 | 12 | Verify Stripe webhooks | 100-180 | `/api/stripe/webhook` verifies raw-body signatures and records events for idempotent processing. |
-| 13 | Synchronize subscriptions | 120-200 | Checkout and subscription events update state; duplicates, delayed events, ordering, and unlinked purchases are handled. |
+| 13 | Synchronize subscriptions | 120-200 | Subscription events update state; duplicates, delayed events, ordering, and unlinked purchases are handled. |
 | 14 | Handle billing returns | 80-150 | `/billing/return` shows processing or confirmed state without granting access based on the redirect alone. |
 | 15 | Expose cross-app access | 100-180 | `/api/access` validates the session and entitlement, returns `no-store` responses, and fails closed on errors. |
 | 16 | Integrate each consuming app | 100-200 **per app** | The app checks entitlement server-to-server and enforces it for protected pages, actions, and APIs. |
@@ -42,6 +42,6 @@ Each estimate covers the **total changed lines**, including tests and configurat
 - **Past-due recovery and another purchase are both available.** Account for an existing unpaid subscription when a user buys another plan; buying a new one must not silently cancel the old subscription or erase an outstanding balance.
 - **Subscription freshness:** Define and test a reconciliation window so missed webhooks cannot leave access enabled indefinitely. Fail closed if state cannot be verified after that window.
 - **Shared-cookie trust:** The parent-domain cookie reaches all matching subdomains, so each must be trusted and protected against takeover.
-- **Checkout association:** Reconcile unlinked purchases safely; do not grant access based solely on an email address or browser-provided reference.
+- **Payment association:** Reconcile unlinked purchases safely; do not grant access based solely on an email address or browser-provided reference.
 
 Steps 1-15 and 17 are for this service; step 16 requires changes in each consuming application.

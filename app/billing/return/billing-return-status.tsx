@@ -6,9 +6,12 @@ type BillingStatus = "checking" | "processing" | "confirmed" | "error";
 const maxChecks = 10;
 const checkIntervalMs = 2_000;
 
-export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
+export function BillingReturnStatus({
+  returnTo,
+}: {
+  returnTo: string | null;
+}) {
   const [status, setStatus] = useState<BillingStatus>("checking");
-  const [returnTo, setReturnTo] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -22,7 +25,7 @@ export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
           method: "POST",
           cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId }),
+          body: JSON.stringify({ returnTo }),
         });
 
         if (!response.ok) {
@@ -52,7 +55,6 @@ export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
             "returnTo" in body && typeof body.returnTo === "string"
               ? body.returnTo
               : null;
-          setReturnTo(destination);
           setStatus("confirmed");
           if (destination) {
             timer = setTimeout(
@@ -86,7 +88,7 @@ export function BillingReturnStatus({ sessionId }: { sessionId: string }) {
         clearTimeout(timer);
       }
     };
-  }, [attempt, sessionId]);
+  }, [attempt, returnTo]);
 
   if (status === "confirmed") {
     return (

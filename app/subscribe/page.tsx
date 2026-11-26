@@ -106,7 +106,7 @@ const SubscribeContent = withConnection(async function SubscribeContent({
           Choose your plan
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Select a plan below to continue. Checkout is securely hosted by Stripe.
+          Select a plan and complete your subscription securely on this page.
         </p>
         <div className="mt-8">
           <PricingOptions returnTo={returnTo} />

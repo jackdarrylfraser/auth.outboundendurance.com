@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { CheckoutPlan } from "@/lib/billing/stripe/checkout";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import type { SubscriptionPlan } from "@/lib/billing/stripe/subscription-catalog";
 
 type PricingOptionsProps = {
   returnTo: string | null;
 };
 
-function isCheckoutPlan(value: unknown): value is CheckoutPlan {
+function isSubscriptionPlan(value: unknown): value is SubscriptionPlan {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -28,7 +31,7 @@ function isCheckoutPlan(value: unknown): value is CheckoutPlan {
   );
 }
 
-function formatPrice(plan: CheckoutPlan): string {
+function formatPrice(plan: SubscriptionPlan): string {
   const currencyFormat = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: plan.currency,
@@ -36,23 +39,108 @@ function formatPrice(plan: CheckoutPlan): string {
   const fractionDigits =
     currencyFormat.resolvedOptions().maximumFractionDigits ?? 2;
 
-  return currencyFormat.format(
-    plan.unitAmount / 10 ** fractionDigits,
-  );
+  return currencyFormat.format(plan.unitAmount / 10 ** fractionDigits);
 }
 
-function formatInterval(plan: CheckoutPlan): string {
+function formatInterval(plan: SubscriptionPlan): string {
   const count = plan.intervalCount;
   const interval = count === 1 ? plan.interval : `${plan.interval}s`;
   return `per ${count === 1 ? "" : `${count} `}${interval}`;
 }
 
+function getBillingReturnUrl(returnTo: string | null): string {
+  const returnUrl = new URL("/billing/return", window.location.origin);
+  if (returnTo) {
+    returnUrl.searchParams.set("returnTo", returnTo);
+  }
+  return returnUrl.href;
+}
+
+function InlinePaymentForm({
+  returnTo,
+  amountLabel,
+}: {
+  returnTo: string | null;
+  amountLabel: string;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submitPayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsPending(true);
+    setError("");
+
+    try {
+      const returnUrl = getBillingReturnUrl(returnTo);
+      const result = await stripe.confirmPayment({
+        elements,
+        confirmParams: { return_url: returnUrl },
+        redirect: "if_required",
+      });
+
+      if (result.error) {
+        setError(
+          result.error.message ??
+            "We couldn't confirm your payment. Check your details and try again.",
+        );
+        setIsPending(false);
+        return;
+      }
+
+      window.location.assign(returnUrl);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "We couldn't confirm your payment. Please try again.",
+      );
+      setIsPending(false);
+    }
+  }
+
+  return (
+    <form className="mt-6 border-t border-border pt-5" onSubmit={submitPayment}>
+      <PaymentElement />
+      {error ? (
+        <p className="mt-4 text-sm text-danger-foreground" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <button
+        className="mt-5 flex w-full items-center justify-center rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={!stripe || !elements || isPending}
+        type="submit"
+      >
+        {isPending ? "Processing payment..." : `Subscribe — ${amountLabel}`}
+      </button>
+      <p className="mt-3 text-center text-xs leading-5 text-muted-foreground">
+        Your payment details are securely processed by Stripe.
+      </p>
+    </form>
+  );
+}
+
 export function PricingOptions({ returnTo }: PricingOptionsProps) {
-  const [plan, setPlan] = useState<CheckoutPlan | null>(null);
+  const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
+  const [publishableKey, setPublishableKey] = useState<string | null>(null);
   const [priceError, setPriceError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [isPending, setIsPending] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const idempotencyKey = useRef<string | null>(null);
+
+  const stripePromise = useMemo(
+    () => (publishableKey ? loadStripe(publishableKey) : null),
+    [publishableKey],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -73,13 +161,16 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
           !body ||
           typeof body !== "object" ||
           !("plan" in body) ||
-          !isCheckoutPlan(body.plan)
+          !isSubscriptionPlan(body.plan) ||
+          !("publishableKey" in body) ||
+          typeof body.publishableKey !== "string"
         ) {
           throw new Error("The subscription price response was invalid.");
         }
 
         if (!cancelled) {
           setPlan(body.plan);
+          setPublishableKey(body.publishableKey);
         }
       } catch {
         if (!cancelled) {
@@ -95,16 +186,17 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
     };
   }, [attempt]);
 
-  async function beginCheckout() {
+  async function beginPayment() {
     setIsPending(true);
     setError("");
 
     try {
-      const response = await fetch("/api/billing/checkout-session", {
+      idempotencyKey.current ??= crypto.randomUUID();
+      const response = await fetch("/api/billing/subscription-intent", {
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ returnTo }),
+        body: JSON.stringify({ idempotencyKey: idempotencyKey.current }),
       });
 
       const body: unknown = await response.json();
@@ -115,27 +207,28 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
           "error" in body &&
           typeof body.error === "string"
             ? body.error
-            : "We couldn't start checkout. Please try again.";
+            : "We couldn't prepare your payment. Please try again.";
         throw new Error(message);
       }
 
       if (
         !body ||
         typeof body !== "object" ||
-        !("url" in body) ||
-        typeof body.url !== "string" ||
-        body.url.length === 0
+        !("clientSecret" in body) ||
+        typeof body.clientSecret !== "string" ||
+        body.clientSecret.length === 0
       ) {
-        throw new Error("The Stripe Checkout response was invalid.");
+        throw new Error("The payment setup response was invalid.");
       }
 
-      window.location.assign(body.url);
+      setClientSecret(body.clientSecret);
     } catch (caught) {
       setError(
         caught instanceof Error
           ? caught.message
-          : "We couldn't start checkout. Please try again.",
+          : "We couldn't prepare your payment. Please try again.",
       );
+    } finally {
       setIsPending(false);
     }
   }
@@ -149,6 +242,7 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
             className="mt-3 font-semibold underline underline-offset-4"
             onClick={() => {
               setPlan(null);
+              setPublishableKey(null);
               setPriceError(false);
               setAttempt((current) => current + 1);
             }}
@@ -158,41 +252,59 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
           </button>
         </div>
       ) : plan === null ? (
-        <p aria-live="polite" className="text-sm text-muted-foreground" role="status">
+        <p
+          aria-live="polite"
+          className="text-sm text-muted-foreground"
+          role="status"
+        >
           Loading subscription price...
         </p>
       ) : (
-        <>
+        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground">{plan.name}</h2>
+          {plan.description ? (
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {plan.description}
+            </p>
+          ) : null}
+          <p className="mt-5 text-2xl font-semibold text-foreground">
+            {formatPrice(plan)}
+            <span className="ml-1 text-sm font-normal text-muted-foreground">
+              {formatInterval(plan)}
+            </span>
+          </p>
           {error ? (
-            <p className="mb-5 text-sm text-danger-foreground" role="alert">
+            <p className="mt-5 text-sm text-danger-foreground" role="alert">
               {error}
             </p>
           ) : null}
-          <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-foreground">
-              {plan.name}
-            </h2>
-            {plan.description ? (
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {plan.description}
-              </p>
-            ) : null}
-            <p className="mt-5 text-2xl font-semibold text-foreground">
-              {formatPrice(plan)}
-              <span className="ml-1 text-sm font-normal text-muted-foreground">
-                {formatInterval(plan)}
-              </span>
-            </p>
-            <button
-              className="mt-5 flex w-full items-center justify-center rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isPending}
-              onClick={() => void beginCheckout()}
-              type="button"
+          {clientSecret && stripePromise ? (
+            <Elements
+              options={{ clientSecret, appearance: { theme: "stripe" } }}
+              stripe={stripePromise}
             >
-              {isPending ? "Opening secure checkout..." : "Subscribe"}
-            </button>
-          </article>
-        </>
+              <InlinePaymentForm
+                amountLabel={formatPrice(plan)}
+                returnTo={returnTo}
+              />
+            </Elements>
+          ) : (
+            <>
+              <button
+                className="mt-5 flex w-full items-center justify-center rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isPending}
+                onClick={() => void beginPayment()}
+                type="button"
+              >
+                {isPending ? "Preparing secure payment..." : "Continue to payment"}
+              </button>
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                You&apos;ll review and confirm the recurring payment before
+                subscribing.
+              </p>
+            </>
+          )}
+        </article>
       )}
     </section>
   );

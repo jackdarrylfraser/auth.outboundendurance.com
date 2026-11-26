@@ -1,15 +1,14 @@
 import { getServerSession } from "@/lib/auth/session";
 import { PaidAccessRequiredError } from "@/lib/access/entitlement-policy";
 import { requirePaidAccess } from "@/lib/access/entitlement";
-import { stripeCustomerService } from "@/lib/billing/stripe/customer";
-import { getStripeCustomerIdFromSession } from "@/lib/billing/stripe/checkout";
-import { isCheckoutSessionId } from "@/lib/billing/stripe/checkout-policy";
 import { getAllowedReturnUrl } from "@/lib/auth/return-url";
 import { infrastructure } from "@/lib/infrastructure/server";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 
-class InvalidRequestBodyError extends Error {}
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 export async function POST(request: Request) {
   try {
@@ -22,50 +21,30 @@ export async function POST(request: Request) {
       );
     }
 
-    const body: unknown = await request.json().catch((error: unknown) => {
-      if (error instanceof SyntaxError) {
-        throw new InvalidRequestBodyError();
-      }
-      throw error;
-    });
+    const body: unknown = await request.json();
 
     if (
-      !body ||
-      typeof body !== "object" ||
-      !("sessionId" in body) ||
-      typeof body.sessionId !== "string" ||
-      !isCheckoutSessionId(body.sessionId)
+      !isRecord(body) ||
+      ("returnTo" in body &&
+        body.returnTo !== null &&
+        typeof body.returnTo !== "string")
     ) {
       return Response.json(
-        { error: "A valid Checkout Session ID is required." },
+        { error: "Invalid billing return request." },
         { status: 400, headers: noStoreHeaders },
       );
     }
 
-    const checkoutSession = await infrastructure.stripe.checkout.sessions.retrieve(
-      body.sessionId,
+    const requestedReturnTo =
+      typeof body.returnTo === "string" ? body.returnTo : undefined;
+    const returnTo = getAllowedReturnUrl(
+      requestedReturnTo,
+      infrastructure.env.BASE_URL,
     );
-    const customerId = await stripeCustomerService.getStripeCustomerId(
-      session.user.id,
-    );
-    if (
-      checkoutSession.metadata?.userId !== session.user.id ||
-      !customerId ||
-      getStripeCustomerIdFromSession(checkoutSession.customer) !== customerId
-    ) {
+    if (requestedReturnTo && !returnTo) {
       return Response.json(
-        { error: "Checkout Session not found." },
-        { status: 404, headers: noStoreHeaders },
-      );
-    }
-
-    if (
-      checkoutSession.mode !== "subscription" ||
-      checkoutSession.status !== "complete"
-    ) {
-      return Response.json(
-        { error: "Checkout Session is not complete." },
-        { status: 409, headers: noStoreHeaders },
+        { error: "The return URL is not allowed." },
+        { status: 400, headers: noStoreHeaders },
       );
     }
 
@@ -88,15 +67,12 @@ export async function POST(request: Request) {
     return Response.json(
       {
         status: "confirmed",
-        returnTo: getAllowedReturnUrl(
-          checkoutSession.metadata?.returnTo,
-          infrastructure.env.BASE_URL,
-        ),
+        returnTo,
       },
       { headers: noStoreHeaders },
     );
   } catch (error) {
-    if (error instanceof InvalidRequestBodyError) {
+    if (error instanceof SyntaxError) {
       return Response.json(
         { error: "Invalid request body." },
         { status: 400, headers: noStoreHeaders },

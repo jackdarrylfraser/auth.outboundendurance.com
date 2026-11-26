@@ -120,34 +120,38 @@ The application uses Pino for structured server logs. `LOG_LEVEL` accepts
 `warn` in production and `debug` elsewhere. Vercel log levels are preserved by
 routing each level through the corresponding console method.
 
-## Stripe Checkout
+## Stripe Payment Element
 
-Set `STRIPE_SECRET_KEY` in `.env.local` or the deployment platform's secret
-settings. Define the product name, description, amount (in minor currency
-units), currency, and recurring interval in
-`lib/stripe-catalog-definition.ts`. Replace all `REPLACE_WITH_` values and set
+Set `STRIPE_SECRET_KEY` and the matching `STRIPE_PUBLISHABLE_KEY` in
+`.env.local` or the deployment platform's environment settings. The publishable
+key must use the same test or live mode as the secret key. Define the product
+name, description, amount (in minor currency units), currency, and recurring
+interval in
+`lib/billing/stripe/catalog-definition.ts`. Replace all `REPLACE_WITH_` values and set
 the price amount before deploying; the sync command rejects unfinished
 placeholders.
 
 `bun run stripe:catalog:sync` finds the product by its stable Stripe metadata
 marker (or by the configured name on first sync), creates it if it is missing,
 and finds or creates the matching recurring price. It stores the resolved
-product and price IDs plus the display details in `stripe_catalog`, separately
-for test and live mode. Run it as part of `bun run deploy:prepare`, or manually
-after changing the catalog definition. The pricing and checkout requests read
+product and price IDs plus the display details in `stripe_catalog`, separately for test and
+live mode. Run it as part of `bun run deploy:prepare`, or manually after
+changing the catalog definition. The pricing and subscription requests read
 this record and do not make Stripe product or price lookup requests.
 
 `/subscribe` requires sign-in. Users without an `active` or `trialing`
-subscription see the current price and one Subscribe button. Existing customers
-with a manageable subscription are sent to `/manage`, which opens the Stripe
-Billing Portal. `/account` remains as a compatibility redirect to `/subscribe`.
-`POST /api/billing/checkout-session` creates a Stripe-hosted Checkout Session
-for the synchronized price; the client cannot choose a different price, and
-users with paid access cannot start another subscription. The session stores
-the validated `returnTo` URL and user ID in Checkout metadata. Stripe returns
-the browser to `/billing/return` with the Checkout Session ID; the return page
-retrieves the metadata from Stripe and polls for the entitlement update from
-the webhook. It redirects to `returnTo` only after entitlement is confirmed.
+subscription see the current price and can enter payment details in the Stripe
+Payment Element without leaving the page. `POST /api/billing/subscription-intent`
+creates an incomplete subscription for the server-synchronized price; the
+client cannot choose a different price, and users with paid or in-progress
+subscriptions cannot start another one. Stripe.js confirms the payment and
+handles any required authentication. Card details are sent directly to Stripe,
+not through the application server. The webhook remains authoritative for
+subscription state and paid access. `/billing/return` polls the signed-in user's
+synchronized entitlement and redirects to an allowlisted `returnTo` only after
+access is confirmed. Existing customers with a manageable subscription are
+sent to `/manage`, which opens the Stripe Billing Portal. `/account` remains a
+compatibility redirect to `/subscribe`.
 
 Consuming apps should make the access check server-to-server, then redirect the
 user's browser to the auth site with the originally requested page in its
@@ -209,10 +213,10 @@ local app process as `STRIPE_WEBHOOK_SECRET`; it does not need to be saved in an
 env file.
 
 The endpoint verifies each signature against the unmodified request body and
-stores each verified event once. Checkout and subscription lifecycle events
-retrieve the current subscription from Stripe, then synchronize it only when
-its Stripe customer ID maps to a known user. Events are marked processed only
-after synchronization succeeds; duplicate deliveries retry pending events and
+stores each verified event once. Subscription lifecycle events retrieve the
+current subscription from Stripe, then synchronize it only when its Stripe
+customer ID maps to a known user. Events are marked processed only after
+synchronization succeeds; duplicate deliveries retry pending events and
 acknowledge already-processed events. An unmapped Stripe customer is linked
 only when its server-side `userId` metadata identifies an existing user and the
 unique mapping can be saved; otherwise the event remains pending for retry or

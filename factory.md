@@ -40,7 +40,7 @@ lib/auth/                          Auth configuration and session workflows
 
 ### 3. Add domain services around workflows
 
-Build and verify services in dependency order. Keep service factories free of HTTP concerns, inject only the persistence/provider operations each workflow needs, and leave the existing route contracts unchanged until step 4.
+Build and verify services in dependency order. Keep service factories free of HTTP concerns and inject only the persistence/provider operations each workflow needs. Update billing route contracts alongside their matching payment flow rather than preserving obsolete hosted-checkout endpoints.
 
 1. **Stripe customer service**
    - Move customer lookup and idempotent customer creation/mapping out of `lib/billing/stripe/client.ts`.
@@ -50,9 +50,9 @@ Build and verify services in dependency order. Keep service factories free of HT
    - Move subscription retrieval coordination, customer mapping verification, and persistence from `subscriptions.ts` into an injectable service.
    - Keep subscription value conversion and event-ordering rules pure and independently testable.
    - Support both webhook event timestamps and freshness checks that guard against overwriting newer webhook state.
-3. **Checkout and billing portal services**
-   - Add separate services for checkout creation and portal-session creation.
-   - Checkout coordinates the current catalog plan, customer service, Stripe Checkout, and existing return-URL policies.
+3. **Payment Element and billing portal services**
+   - Add separate services for subscription payment setup and portal-session creation.
+   - Payment setup coordinates the current catalog plan, customer service, and an incomplete Stripe subscription; payment confirmation remains in the browser through Stripe.js.
    - Portal coordinates the customer mapping, configuration selection policy, and Stripe Billing Portal session.
 4. **Webhook processing service**
    - Move event persistence, duplicate detection, subscription retrieval/synchronization, and processed-state updates into a service.

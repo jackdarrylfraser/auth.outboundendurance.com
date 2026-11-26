@@ -5,14 +5,15 @@ import { env } from "@/lib/env";
 import { getServerSession } from "@/lib/auth/session";
 import { withConnection } from "@/lib/next/with-connection";
 import { BillingReturnStatus } from "@/app/billing/return/billing-return-status";
+import { getAllowedReturnUrl } from "@/lib/auth/return-url";
 
 export const metadata: Metadata = {
   title: "Billing status | Outbound Endurance",
-  description: "Check the status of your subscription checkout.",
+  description: "Check the status of your subscription payment.",
 };
 
 type BillingReturnPageProps = {
-  searchParams: Promise<{ session_id?: string | string[] }>;
+  searchParams: Promise<{ returnTo?: string | string[] }>;
 };
 
 export default async function BillingReturnPage({
@@ -36,19 +37,18 @@ export default async function BillingReturnPage({
 const BillingReturnContent = withConnection(async function BillingReturnContent({
   searchParams,
 }: BillingReturnPageProps) {
-  const { session_id: sessionIdParam } = await searchParams;
-  const sessionId =
-    typeof sessionIdParam === "string" ? sessionIdParam : null;
-
-  if (!sessionId?.startsWith("cs_")) {
-    redirect("/subscribe");
-  }
-
+  const { returnTo: returnToParam } = await searchParams;
+  const returnTo = getAllowedReturnUrl(
+    typeof returnToParam === "string" ? returnToParam : undefined,
+    env.BASE_URL,
+  );
   const session = await getServerSession();
 
   if (!session) {
     const returnUrl = new URL("/billing/return", env.BASE_URL);
-    returnUrl.searchParams.set("session_id", sessionId);
+    if (returnTo) {
+      returnUrl.searchParams.set("returnTo", returnTo);
+    }
     const loginUrl = new URL("/login", env.BASE_URL);
     loginUrl.searchParams.set("returnTo", returnUrl.href);
     redirect(`${loginUrl.pathname}${loginUrl.search}`);
@@ -69,7 +69,7 @@ const BillingReturnContent = withConnection(async function BillingReturnContent(
         >
           Checking your subscription
         </h1>
-        <BillingReturnStatus sessionId={sessionId} />
+        <BillingReturnStatus returnTo={returnTo} />
       </section>
     </main>
   );
