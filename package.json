@@ -14,7 +14,7 @@
     "stripe:portal:configure": "bun run scripts/stripe-billing-portal-config.ts",
     "db:seed": "bun run scripts/db-seed.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "bun run scripts/db-migrate.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
