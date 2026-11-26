@@ -79,7 +79,6 @@ type StripeManageOperations = {
     create(params: {
       customer: string;
       usage: "off_session";
-      automatic_payment_methods: { enabled: true };
       allowed_payment_method_types: ["card"];
       metadata: { userId: string };
     }): Promise<{ client_secret: string | null }>;
@@ -277,7 +276,6 @@ export function createStripeManageService(dependencies: {
     const setupIntent = await dependencies.stripe.setupIntents.create({
       customer: customerId,
       usage: "off_session",
-      automatic_payment_methods: { enabled: true },
       allowed_payment_method_types: ["card"],
       metadata: { userId },
     });

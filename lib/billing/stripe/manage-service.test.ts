@@ -41,7 +41,6 @@ function createService(options: {
 let setupIntentCreateParams: {
   customer: string;
   usage: "off_session";
-  automatic_payment_methods: { enabled: true };
   allowed_payment_method_types: ["card"];
   metadata: { userId: string };
 } | undefined;
@@ -166,7 +165,6 @@ describe("Stripe manage service", () => {
     assert.deepEqual(getSetupIntentCreateParams(), {
       customer: "cus_123",
       usage: "off_session",
-      automatic_payment_methods: { enabled: true },
       allowed_payment_method_types: ["card"],
       metadata: { userId: "user_123" },
     });
