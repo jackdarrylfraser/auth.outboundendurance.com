@@ -38,7 +38,14 @@ function createService(options: {
   };
 } = {}) {
   const calls: string[] = [];
-  let latestCancelAtPeriodEnd = activeSubscription.cancel_at_period_end;
+let setupIntentCreateParams: {
+  customer: string;
+  usage: "off_session";
+  automatic_payment_methods: { enabled: true };
+  allowed_payment_method_types: ["card"];
+  metadata: { userId: string };
+} | undefined;
+let latestCancelAtPeriodEnd = activeSubscription.cancel_at_period_end;
   const service = createStripeManageService({
     customerService: {
       getStripeCustomerId: async () => "cus_123",
@@ -71,7 +78,10 @@ function createService(options: {
         },
       },
       setupIntents: {
-        create: async () => ({ client_secret: "seti_secret" }),
+        create: async (params) => {
+          setupIntentCreateParams = params;
+          return { client_secret: "seti_secret" };
+        },
         retrieve: async () =>
           options.setupIntent ?? {
             customer: "cus_123",
@@ -105,6 +115,7 @@ function createService(options: {
   return {
     service,
     calls,
+    getSetupIntentCreateParams: () => setupIntentCreateParams,
     getLatestCancelAtPeriodEnd: () => latestCancelAtPeriodEnd,
   };
 }
@@ -147,10 +158,17 @@ describe("Stripe manage service", () => {
   });
 
   it("creates an off-session card SetupIntent for the mapped customer", async () => {
-    const { service } = createService();
+    const { service, getSetupIntentCreateParams } = createService();
 
     assert.deepEqual(await service.createPaymentMethodSetup("user_123"), {
       clientSecret: "seti_secret",
+    });
+    assert.deepEqual(getSetupIntentCreateParams(), {
+      customer: "cus_123",
+      usage: "off_session",
+      automatic_payment_methods: { enabled: true },
+      allowed_payment_method_types: ["card"],
+      metadata: { userId: "user_123" },
     });
   });
 
