@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1795618636500,
-      "tag": "0000_third_multiple_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1795674313707,
-      "tag": "0001_premium_scourge",
+      "when": 1795677711295,
+      "tag": "0000_baseline",
       "breakpoints": true
     }
   ]
