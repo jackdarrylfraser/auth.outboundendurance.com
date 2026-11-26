@@ -36,7 +36,10 @@ describe("Stripe Payment Element service", () => {
       customer: "cus_123",
       items: [{ price: "price_123", quantity: 1 }],
       payment_behavior: "default_incomplete",
-      payment_settings: { save_default_payment_method: "on_subscription" },
+      payment_settings: {
+        save_default_payment_method: "on_subscription",
+        payment_method_types: ["card"],
+      },
       metadata: {
         userId: "user_123",
         payment_flow: "payment_element",

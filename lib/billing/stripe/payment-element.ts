@@ -38,7 +38,10 @@ export function createStripePaymentElementService(dependencies: {
         customer: input.customerId,
         items: [{ price: input.priceId, quantity: 1 }],
         payment_behavior: "default_incomplete",
-        payment_settings: { save_default_payment_method: "on_subscription" },
+        payment_settings: {
+          save_default_payment_method: "on_subscription",
+          payment_method_types: ["card"],
+        },
         metadata: {
           userId: input.userId,
           payment_flow: "payment_element",

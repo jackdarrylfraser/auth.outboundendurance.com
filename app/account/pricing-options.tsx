@@ -1,6 +1,11 @@
 "use client";
 
-import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
@@ -107,6 +112,9 @@ function InlinePaymentForm({
 
   return (
     <form className="mt-6 border-t border-border pt-5" onSubmit={submitPayment}>
+      <h3 className="mb-3 text-base font-semibold text-foreground">
+        Pick your payment method
+      </h3>
       <PaymentElement />
       {error ? (
         <p className="mt-4 text-sm text-danger-foreground" role="alert">
@@ -296,7 +304,9 @@ export function PricingOptions({ returnTo }: PricingOptionsProps) {
                 onClick={() => void beginPayment()}
                 type="button"
               >
-                {isPending ? "Preparing secure payment..." : "Continue to payment"}
+                {isPending
+                  ? "Preparing secure payment..."
+                  : "Continue to payment"}
               </button>
               <p className="mt-3 text-xs leading-5 text-muted-foreground">
                 You&apos;ll review and confirm the recurring payment before
