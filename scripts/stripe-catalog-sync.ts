@@ -5,11 +5,11 @@ import { stripeCatalog } from "@/lib/db/schema";
 import { infrastructure } from "@/lib/infrastructure/runtime";
 import {
   assertStripeSubscriptionDefinitionIsConfigured,
-  getStripeLivemode,
   STRIPE_CATALOG_MANAGED_BY,
   STRIPE_SUBSCRIPTION_CATALOG_KEY,
   stripeSubscriptionDefinition,
-} from "@/lib/billing/stripe/catalog-definition";
+} from "./stripe-catalog-seed";
+import { getStripeLivemode } from "@/lib/billing/stripe/mode";
 
 const { db, stripe, env } = infrastructure;
 const livemode = getStripeLivemode(env.STRIPE_SECRET_KEY);

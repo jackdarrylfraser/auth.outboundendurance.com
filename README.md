@@ -127,17 +127,19 @@ Set `STRIPE_SECRET_KEY` and the matching `STRIPE_PUBLISHABLE_KEY` in
 key must use the same test or live mode as the secret key. Define the product
 name, description, amount (in minor currency units), currency, and recurring
 interval in
-`lib/billing/stripe/catalog-definition.ts`. Replace all `REPLACE_WITH_` values and set
-the price amount before deploying; the sync command rejects unfinished
-placeholders.
+`scripts/stripe-catalog-seed.ts`. These are provisioning-only seed values, not
+application configuration; change them only when intentionally provisioning a
+catalog update.
 
 `bun run stripe:catalog:sync` finds the product by its stable Stripe metadata
 marker (or by the configured name on first sync), creates it if it is missing,
 and finds or creates the matching recurring price. It stores the resolved
 product and price IDs plus the display details in `stripe_catalog`, separately for test and
-live mode. Run it as part of `bun run deploy:prepare`, or manually after
-changing the catalog definition. The pricing and subscription requests read
-this record and do not make Stripe product or price lookup requests.
+live mode. Run it explicitly after database migrations when provisioning a new
+environment or intentionally applying a catalog seed change. Routine app
+deployments do not sync the Stripe catalog; pricing and subscription requests
+read the provisioned database record and do not make Stripe product or price
+lookup requests.
 
 `/subscribe` requires sign-in. Users without an `active` or `trialing`
 subscription see the current price and can enter payment details in the Stripe
@@ -171,12 +173,12 @@ The app manages its Customer Portal configuration through the Stripe API.
 bun run deploy:prepare
 ```
 
-This applies migrations, synchronizes the code-defined product and price, then
-syncs the Billing Portal configuration. Provide the deployment's database
-credentials and Stripe secret key to this step, and run it before the new app
-version receives traffic. Use a test-mode key for test environments and a
-live-mode key for production; Stripe keeps products, prices, and portal
-configurations separate by mode.
+This applies migrations and syncs the Billing Portal configuration. Provide the
+deployment's database credentials and Stripe secret key to this step, and run
+it before the new app version receives traffic. Provision the Stripe catalog
+separately with `bun run db:migrate && bun run stripe:catalog:sync`; use a
+test-mode key for test environments and a live-mode key for production. Stripe
+keeps products, prices, and portal configurations separate by mode.
 
 If the deployment platform expects one command for the whole sequence, use
 `bun run deploy`. It prepares the database and Stripe catalog before building

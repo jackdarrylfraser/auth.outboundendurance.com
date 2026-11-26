@@ -7,7 +7,7 @@ import {
   STRIPE_BILLING_PORTAL_CONFIGURATION_MARKER,
   STRIPE_BILLING_PORTAL_CONFIGURATION_NAME,
 } from "@/lib/billing/stripe/billing-portal-policy";
-import { getStripeLivemode } from "@/lib/billing/stripe/catalog-definition";
+import { getStripeLivemode } from "@/lib/billing/stripe/mode";
 
 const { env, stripe } = infrastructure;
 const isLiveMode = getStripeLivemode(env.STRIPE_SECRET_KEY);

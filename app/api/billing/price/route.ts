@@ -1,5 +1,5 @@
 import { getServerSession } from "@/lib/auth/session";
-import { getStripeLivemode } from "@/lib/billing/stripe/catalog-definition";
+import { getStripeLivemode } from "@/lib/billing/stripe/mode";
 import { getCurrentSubscriptionPlan } from "@/lib/billing/stripe/subscription-catalog";
 import { infrastructure } from "@/lib/infrastructure/server";
 

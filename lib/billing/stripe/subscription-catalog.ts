@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { stripeCatalog } from "@/lib/db/schema";
-import { getStripeLivemode } from "@/lib/billing/stripe/catalog-definition";
+import { getStripeLivemode } from "@/lib/billing/stripe/mode";
 import { infrastructure } from "@/lib/infrastructure/server";
 
 export type SubscriptionPlan = {
@@ -24,7 +24,7 @@ export async function getCurrentSubscriptionPlan(): Promise<SubscriptionPlan> {
 
   if (!catalog) {
     throw new Error(
-      `The Stripe ${livemode ? "live" : "test"} subscription catalog is not synchronized. Run \`bun run stripe:catalog:sync\` before deploying.`,
+      `The Stripe ${livemode ? "live" : "test"} subscription catalog is not provisioned. Run \`bun run db:migrate && bun run stripe:catalog:sync\` before serving billing traffic.`,
     );
   }
 

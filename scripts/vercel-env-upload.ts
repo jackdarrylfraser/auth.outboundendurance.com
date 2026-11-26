@@ -3,7 +3,7 @@ import type { Vercel } from "@vercel/sdk";
 import { readFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
 import { fileURLToPath } from "node:url";
-import { getStripeLivemode } from "../lib/billing/stripe/catalog-definition";
+import { getStripeLivemode } from "../lib/billing/stripe/mode";
 import { infrastructure } from "../lib/infrastructure/runtime";
 import { STRIPE_WEBHOOK_EVENTS } from "../lib/billing/stripe/webhook-policy";
 
