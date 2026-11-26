@@ -21,6 +21,32 @@ export const user = sqliteTable("user", {
     .notNull(),
 });
 
+export const role = sqliteTable("role", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+});
+
+export const userRole = sqliteTable(
+  "user_role",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    roleId: integer("role_id")
+      .notNull()
+      .references(() => role.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("user_role_user_id_role_id_unique").on(
+      table.userId,
+      table.roleId,
+    ),
+    index("user_role_role_id_idx").on(table.roleId),
+  ],
+);
+
 export const session = sqliteTable(
   "session",
   {
@@ -174,7 +200,23 @@ export const stripeCatalog = sqliteTable("stripe_catalog", {
 export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
+  roles: many(userRole),
   stripeCustomer: one(stripeCustomer),
+}));
+
+export const roleRelations = relations(role, ({ many }) => ({
+  users: many(userRole),
+}));
+
+export const userRoleRelations = relations(userRole, ({ one }) => ({
+  user: one(user, {
+    fields: [userRole.userId],
+    references: [user.id],
+  }),
+  role: one(role, {
+    fields: [userRole.roleId],
+    references: [role.id],
+  }),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({

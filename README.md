@@ -45,7 +45,7 @@ Check the configured connection with:
 bun run db:check
 ```
 
-Seed an idempotent development user into a local `file:` database with:
+Seed an idempotent development admin user into a local `file:` database with:
 
 ```sh
 bun run db:seed
