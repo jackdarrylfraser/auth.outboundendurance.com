@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { env } from "@/lib/env";
 import { getServerSession } from "@/lib/auth/session";
 import { stripeManageService } from "@/lib/billing/stripe/manage";
@@ -64,8 +65,8 @@ const ManageContent = withConnection(async function ManageContent() {
           Manage your subscription
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Update your payment method, review payment history, or cancel your
-          subscription.
+          Update your payment method or review payment history. Subscription
+          cancellation and resumption are managed separately.
         </p>
         <ManageBilling
           data={billingData}
@@ -76,6 +77,12 @@ const ManageContent = withConnection(async function ManageContent() {
             billingData.subscription.currentPeriodEnd,
           ].join(":")}
         />
+        <Link
+          className="mt-6 inline-flex rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-background"
+          href="/manage/cancel"
+        >
+          Cancel or resume subscription
+        </Link>
         <LogoutButton />
       </section>
     </main>
